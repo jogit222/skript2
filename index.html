@@ -1,26 +1,299 @@
-<button class="tool-btn" onclick="copyToClipboard()" id="copy-btn" style="color: var(--green); margin-top: 5px;">📋 COPY CODE</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skript IDE Pro - All-in-One</title>
+    <style>
+        :root {
+            --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
+            --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
+            --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; --orange: #ffb86c; --red: #ff5555;
+        }
+        
+        /* Themes */
+        body.theme-monokai { --bg: #272822; --sidebar: #1e1f1c; --fg: #f8f8f2; --purple: #ae81ff; --selection: #49483e; --cyan: #66d9ef; --pink: #f92672; --green: #a6e22e; }
+        body.theme-light { --bg: #ffffff; --sidebar: #f0f0f0; --fg: #2e3440; --purple: #5e81ac; --selection: #d8dee9; --comment: #9ea3af; --cyan: #88c0d0; --pink: #bf616a; --green: #a3be8c; }
+
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; color: var(--fg); transition: background 0.3s; }
+        .container { display: flex; height: 100vh; width: 100vw; }
+        
+        /* Sidebar Navigation */
+        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+        .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .sidebar-section { padding: 15px; font-size: 11px; color: var(--comment); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+        
+        /* Toolbar */
+        .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
+        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .tool-btn:hover { border-color: var(--purple); background: #50536b; }
+        .tool-btn.danger { color: var(--red); }
+        .tool-btn.danger:hover { background: var(--red); color: white; }
+        .tool-btn.success { color: var(--green); }
+
+        /* Settings Modal */
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; backdrop-filter: blur(2px); }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 30px; border-radius: 12px; width: 550px; border: 1px solid var(--purple); max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .setting-row { margin-bottom: 25px; }
+        .setting-label { display: block; font-size: 11px; color: var(--purple); font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
+        .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; box-sizing: border-box; outline: none; font-size: 14px; }
+
+        /* Editor Core */
+        .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
+        #gutter { width: 60px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: 'Fira Code', 'Consolas', monospace; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; }
+        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: 0; font-family: 'Fira Code', 'Consolas', monospace; line-height: 1.6; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; }
+        #editing { z-index: 2; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; }
+        #highlighting { z-index: 1; pointer-events: none; }
+
+        /* Addon List styling */
+        .addon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; max-height: 250px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 6px; }
+        .addon-item { display: flex; justify-content: space-between; padding: 6px 10px; font-size: 12px; background: rgba(255,255,255,0.02); border-radius: 4px; align-items: center; }
+        .addon-item:hover { background: var(--selection); }
+        .addon-item input { cursor: pointer; accent-color: var(--purple); }
+        
+        /* Syntax Colors */
+        .sk-event { color: var(--pink); font-weight: bold; }
+        .sk-effect { color: var(--cyan); }
+        .sk-addon { color: var(--purple); font-weight: bold; }
+        .sk-var { color: var(--orange); }
+        .sk-comment { color: var(--comment); font-style: italic; }
+        .sk-string { color: var(--green); }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--sidebar); }
+        ::-webkit-scrollbar-thumb { background: var(--selection); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--comment); }
+    </style>
+</head>
+<body>
+
+<div id="modal-overlay">
+    <div id="modal">
+        <h2 style="margin-top:0; color:var(--purple); display: flex; justify-content: space-between;">
+            Editor Configuration
+            <span style="cursor:pointer; font-size: 20px;" onclick="closeSettings()">&times;</span>
+        </h2>
+        
+        <div class="setting-row">
+            <label class="setting-label">Appearance & Font</label>
+            <div style="display:flex; gap:10px;">
+                <select id="theme-select" class="input-field" onchange="changeTheme()">
+                    <option value="dracula">Dracula (Default Dark)</option>
+                    <option value="monokai">Monokai (High Contrast)</option>
+                    <option value="light">Solarized (Light Mode)</option>
+                </select>
+                <div style="display:flex; align-items:center; background:var(--bg); padding:0 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.1);">
+                    <span style="font-size:11px; margin-right:8px;">SIZE</span>
+                    <input type="number" id="font-size" class="input-field" style="width:60px; border:none; padding:5px;" value="14" onchange="changeFontSize()">
+                </div>
+            </div>
+        </div>
+
+        <div class="setting-row">
+            <label class="setting-label">Manage Addon Syntax (120+ Supported)</label>
+            <input type="text" id="addon-search" class="input-field" placeholder="Filter addons..." onkeyup="filterAddons()" style="margin-bottom: 10px;">
+            <div style="display:flex; gap:8px; margin-bottom: 10px;">
+                <button class="tool-btn" style="flex:1; justify-content:center;" onclick="toggleAllAddons(true)">Enable All</button>
+                <button class="tool-btn" style="flex:1; justify-content:center;" onclick="toggleAllAddons(false)">Disable All</button>
+            </div>
+            <div id="addon-list" class="addon-grid"></div>
+        </div>
+        
+        <button class="tool-btn" style="width:100%; padding:15px; background:var(--purple); color:white; border:none; font-size:13px;" onclick="closeSettings()">APPLY & CLOSE</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="sidebar">
+        <div class="sidebar-brand">Skript IDE <span style="font-size:10px; opacity:0.5;">PRO</span></div>
+        
+        <div class="sidebar-section">Project</div>
+        <div style="padding: 0 10px;">
+            <div style="background: var(--selection); padding: 10px 15px; border-radius: 6px; font-size: 13px; cursor: pointer; border-left: 4px solid var(--purple); display: flex; align-items: center; gap: 10px;">
+                <span>📄</span> main.sk
+            </div>
+        </div>
+
+        <div style="margin-top: auto; padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:10px;">
+            <button class="tool-btn" onclick="importFile()">📂 OPEN FILE</button>
+            <button class="tool-btn" onclick="exportFile()">💾 DOWNLOAD .SK</button>
+            <button class="tool-btn success" id="copy-btn" onclick="copyToClipboard()">📋 COPY TO CLIPBOARD</button>
+            <button class="tool-btn danger" onclick="clearEditor()">🗑️ CLEAR EDITOR</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="toolbar">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="color: var(--purple); font-weight: bold; font-size: 14px;">main.sk</span>
+                <span id="save-status" style="font-size: 11px; color: var(--comment); border: 1px solid var(--comment); padding: 2px 8px; border-radius: 10px;">Synced</span>
+            </div>
+            <button class="tool-btn" onclick="openSettings()">⚙️ EDITOR SETTINGS</button>
+        </div>
+        <div class="editor-container">
+            <div id="gutter">1</div>
+            <div class="input-area">
+                <pre id="highlighting"></pre>
+                <textarea id="editing" spellcheck="false" oninput="handleInput()" onscroll="syncScroll()"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-    // Updated Clear Editor function with extra safety
-    function clearEditor() { 
-        if(confirm("⚠️ WARNING: This will permanently erase all code in the editor. Are you sure?")) { 
-            elInput.value = ""; 
-            handleInput(); // Updates syntax highlighting and local storage
-            document.getElementById('save-status').innerText = "Editor Cleared";
-        } 
+    const elInput = document.getElementById('editing');
+    const elOutput = document.getElementById('highlighting');
+    const elGutter = document.getElementById('gutter');
+    const status = document.getElementById('save-status');
+
+    // Full 120+ Addon Registry
+    const rawAddonNames = ["Skript", "SkBee", "Skript-Reflect", "SkQuery", "TuSKe", "skRayFall", "skript-yaml", "skript-gui", "skript-packet", "SkJade", "skript-placeholders", "skUtilities", "MundoSK", "Skream", "SkHttp", "MiSK", "SkCheez", "MorkazSk", "SkCheese", "skJson", "skript-holo", "Ersatz", "skript-bossbar", "NoteSK", "Skematic", "PermSk", "PriSKm", "Skelocity", "Skript-Citizens", "skript-npc", "SkScoreboard", "BungeeSK", "Kosmos", "Skacket", "skDragon", "skript-teams", "ThatPacketAddon", "Conquer", "GameAPI", "Hippo", "skript-db", "Sky", "Biosphere2", "LabySK", "Linky", "Skent", "SkImage", "SKPermissionsEx", "SkriptPDC", "SkUniversal", "SkVault", "HolographicDisplaysAddon", "PlayerMention", "SkGrpc", "skript-oraxen", "skript-storage", "BoringSK", "Fawesk", "JobsSK", "Plosk", "SkCloudnet", "skGlow", "Skitch", "SkLogs", "SkMore", "Skript-Towny", "Skungee", "SkUtils", "Diskuise", "McQQBot", "MongoSK", "Pesk", "PotatoSK", "SkBriggy", "SkEmail", "SkRedis", "SkriptWebAPI", "SKull", "ZulfBungee", "Animated-Skript", "BeastTokenSk", "BungeeMaster", "EventCore", "FunkySk", "LiteBansSk", "oopsk", "Reqn", "RotateSk", "SetTickRateAddon", "SkAnimation", "SkArclight", "SkCoAPI", "SkDisaster", "SkDynmap", "Skelegram", "Skester", "SkFilter", "skGoat", "skGull", "SkMail", "SkMaps", "SkMaze", "SkNebula", "SKNoise", "Skore", "skProfession", "SkProtobuf", "SkProxy", "Skraper", "Skript-AnvilGUI", "Skript-GPT", "skript-json", "skript-logs", "skript-math", "Skript-Merchants", "skript-mirror", "skript-ping", "skript-simple-voice-chat", "Skript-Translate", "skript-votifier-hook", "SkriptLanguage", "Skriptor", "skScraft", "SkVelo", "skWhitelist", "SlimeLink", "Tablisknu", "Ticker", "TranSKator", "WebSKT", "Wildfuskator", "xiaojie-gui", "WolfSk2"];
+
+    let state = JSON.parse(localStorage.getItem('sk_ide_ultimate')) || {
+        theme: 'dracula',
+        fontSize: 14,
+        addons: {'skbee': true, 'skript-reflect': true, 'skquery': true},
+        code: "on join:\n\tbroadcast \"&aWelcome to the Ultimate Skript IDE!\"\n\t# Everything is ready.\n\tset {session::%player%} to now\n\ncommand /test:\n\ttrigger:\n\t\tsend \"IDE is working!\""
+    };
+
+    function init() {
+        elInput.value = state.code;
+        document.getElementById('theme-select').value = state.theme;
+        document.getElementById('font-size').value = state.fontSize;
+        changeTheme();
+        changeFontSize();
+        renderAddonList();
+        updateEditor();
     }
 
-    // New Copy to Clipboard function
+    function saveState() {
+        localStorage.setItem('sk_ide_ultimate', JSON.stringify(state));
+    }
+
+    function handleInput() {
+        state.code = elInput.value;
+        status.innerText = "Saving...";
+        updateEditor();
+        saveState();
+        setTimeout(() => status.innerText = "Synced", 800);
+    }
+
+    function changeTheme() {
+        state.theme = document.getElementById('theme-select').value;
+        document.body.className = state.theme === 'dracula' ? '' : 'theme-' + state.theme;
+        saveState();
+    }
+
+    function changeFontSize() {
+        state.fontSize = document.getElementById('font-size').value;
+        const size = state.fontSize + 'px';
+        elInput.style.fontSize = size;
+        elOutput.style.fontSize = size;
+        elGutter.style.fontSize = size;
+        saveState();
+    }
+
+    function updateEditor() {
+        let code = elInput.value;
+        // Line numbers
+        elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
+        
+        let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        
+        // Strings
+        h = h.replace(/"([^"]*)"/g, `<span class="sk-string">"$1"</span>`);
+        
+        // Events
+        h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
+        h = h.replace(/^(\w+\s+.*:)/gm, '<span class="sk-event">$1</span>');
+
+        // Addon Highlighting
+        rawAddonNames.forEach(name => {
+            if(state.addons[name.toLowerCase()]) {
+                const reg = new RegExp(`\\b(${name})\\b`, 'gi');
+                h = h.replace(reg, '<span class="sk-addon">$1</span>');
+            }
+        });
+
+        // Keywords & Effects
+        h = h.replace(/\b(send|broadcast|give|set|add|remove|delete|cancel event|stop|wait|if|else|loop|command|trigger|import|options|return|exit|while|every)\b/g, '<span class="sk-effect">$1</span>');
+        
+        // Variables
+        h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
+        
+        // Comments
+        h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
+        
+        elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
+    }
+
+    function renderAddonList() {
+        const container = document.getElementById('addon-list');
+        container.innerHTML = rawAddonNames.sort().map(name => `
+            <div class="addon-item" data-name="${name.toLowerCase()}">
+                <span>${name}</span>
+                <input type="checkbox" ${state.addons[name.toLowerCase()] ? 'checked' : ''} onchange="toggleAddon('${name.toLowerCase()}', this.checked)">
+            </div>
+        `).join('');
+    }
+
+    function toggleAddon(id, val) { state.addons[id] = val; saveState(); updateEditor(); }
+    function toggleAllAddons(val) { rawAddonNames.forEach(n => state.addons[n.toLowerCase()] = val); renderAddonList(); saveState(); updateEditor(); }
+    
+    function filterAddons() {
+        const q = document.getElementById('addon-search').value.toLowerCase();
+        document.querySelectorAll('.addon-item').forEach(el => {
+            el.style.display = el.getAttribute('data-name').includes(q) ? 'flex' : 'none';
+        });
+    }
+
     function copyToClipboard() {
         const btn = document.getElementById('copy-btn');
         navigator.clipboard.writeText(elInput.value).then(() => {
-            const originalText = btn.innerText;
+            const oldText = btn.innerText;
             btn.innerText = "✅ COPIED!";
-            btn.style.borderColor = "var(--green)";
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.borderColor = "rgba(255,255,255,0.1)";
-            }, 2000);
+            setTimeout(() => btn.innerText = oldText, 2000);
         });
     }
+
+    function clearEditor() {
+        if(confirm("🗑️ Are you sure you want to clear ALL code? This cannot be undone.")) {
+            elInput.value = "";
+            handleInput();
+        }
+    }
+
+    function exportFile() {
+        const blob = new Blob([elInput.value], {type: 'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = "main.sk";
+        a.click();
+    }
+
+    function importFile() {
+        const i = document.createElement('input'); i.type = 'file';
+        i.onchange = e => {
+            const r = new FileReader();
+            r.onload = arg => { elInput.value = arg.target.result; handleInput(); };
+            r.readAsText(e.target.files[0]);
+        }; i.click();
+    }
+
+    function syncScroll() { 
+        elOutput.scrollTop = elInput.scrollTop; 
+        elOutput.scrollLeft = elInput.scrollLeft; 
+        elGutter.scrollTop = elInput.scrollTop; 
+    }
+
+    function openSettings() { document.getElementById('modal-overlay').style.display = 'block'; }
+    function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+    // Start IDE
+    init();
 </script>
+</body>
+</html>
