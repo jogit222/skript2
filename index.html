@@ -2,105 +2,115 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skript IDE Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    
     <style>
-        /* --- CSS RESET & VARIABLES --- */
         :root {
-            --bg-dark: #282a36;
-            --bg-darker: #21222c;
-            --fg: #f8f8f2;
-            --comment: #6272a4;
-            --cyan: #8be9fd;
-            --green: #50fa7b;
-            --orange: #ffb86c;
-            --pink: #ff79c6;
-            --purple: #bd93f9;
-            --red: #ff5555;
-            --yellow: #f1fa8c;
-            --selection: #44475a;
-            --gutter-bg: #21222c;
-            --border: #44475a;
+            --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
+            --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
         }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #191a21;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--fg);
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        body, html { 
+            margin: 0; padding: 0; height: 100%; 
+            background: #191a21; font-family: sans-serif; overflow: hidden;
         }
-
-        /* --- LAYOUT --- */
-        .ide-container {
-            width: 95vw;
-            height: 90vh;
-            background-color: var(--bg-dark);
-            border-radius: 8px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            display: flex;
-            border: 1px solid var(--border);
-            overflow: hidden;
-            position: relative;
+        .container { display: flex; height: 100vh; width: 100vw; }
+        .sidebar { width: 50px; background: var(--sidebar); display: flex; flex-direction: column; align-items: center; padding-top: 10px; border-right: 1px solid #444; }
+        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+        .toolbar { height: 35px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; font-size: 12px; color: var(--comment); border-bottom: 1px solid #444; }
+        
+        /* The Editor */
+        .editor-container { flex: 1; position: relative; display: flex; }
+        #gutter { width: 40px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: monospace; font-size: 14px; line-height: 1.5; user-select: none; }
+        .input-area { flex: 1; position: relative; overflow: hidden; }
+        
+        #editing, #highlighting {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            margin: 0; padding: 10px; border: 0; font-family: monospace;
+            font-size: 14px; line-height: 1.5; tab-size: 4; white-space: pre;
+            box-sizing: border-box; overflow: auto;
         }
+        #editing { z-index: 2; background: transparent; color: transparent; caret-color: white; outline: none; resize: none; }
+        #highlighting { z-index: 1; color: var(--fg); pointer-events: none; }
+        
+        /* Settings Modal */
+        #modal { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 20px; border: 1px solid var(--purple); z-index: 100; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .sk-event { color: #ff79c6; font-weight: bold; }
+        .sk-effect { color: #8be9fd; }
+        .sk-var { color: #ffb86c; }
+        .sk-comment { color: #6272a4; }
+    </style>
+</head>
+<body>
 
-        /* Sidebar */
-        .sidebar {
-            width: 50px;
-            background-color: var(--bg-darker);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-top: 15px;
-            z-index: 10;
+<div class="container">
+    <div class="sidebar">
+        <button onclick="document.getElementById('modal').style.display='block'" style="cursor:pointer; background:none; border:none; font-size:20px;">⚙️</button>
+    </div>
+    <div class="main">
+        <div class="toolbar"><span>script.sk</span></div>
+        <div class="editor-container">
+            <div id="gutter">1</div>
+            <div class="input-area">
+                <pre id="highlighting"></pre>
+                <textarea id="editing" spellcheck="false" oninput="updateEditor()" onscroll="syncScroll()"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modal">
+    <h3 style="color:var(--purple); margin-top:0;">Settings</h3>
+    <label style="color:white;"><input type="checkbox" id="set-syntax" checked onchange="updateEditor()"> Syntax Highlighting</label><br><br>
+    <button onclick="document.getElementById('modal').style.display='none'" style="width:100%; background:var(--purple); border:none; color:white; padding:5px; cursor:pointer;">Close</button>
+</div>
+
+<script>
+    const elInput = document.getElementById('editing');
+    const elOutput = document.getElementById('highlighting');
+    const elGutter = document.getElementById('gutter');
+
+    function syncScroll() {
+        elOutput.scrollTop = elInput.scrollTop;
+        elOutput.scrollLeft = elInput.scrollLeft;
+        elGutter.scrollTop = elInput.scrollTop;
+    }
+
+    function updateEditor() {
+        const code = elInput.value;
+        const useSyntax = document.getElementById('set-syntax').checked;
+
+        // Line Numbers
+        const lines = code.split('\n').length;
+        elGutter.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+
+        if (useSyntax) {
+            let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+            // Simple Highlighting Rules
+            h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
+            h = h.replace(/\b(send|broadcast|give|set|add|cancel event)\b/g, '<span class="sk-effect">$1</span>');
+            h = h.replace(/\{([\w\.]+)\}/g, '<span class="sk-var">{$1}</span>');
+            h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
+            
+            elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
+        } else {
+            elOutput.innerText = code;
         }
+    }
 
-        .icon-btn {
-            width: 30px;
-            height: 30px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: 0.2s;
-            user-select: none;
+    // Handle Tab key
+    elInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const s = this.selectionStart;
+            this.value = this.value.substring(0, s) + "\t" + this.value.substring(this.selectionEnd);
+            this.selectionEnd = s + 1;
+            updateEditor();
         }
-        .icon-btn:hover { background-color: var(--selection); }
-        .icon-btn.active { background-color: var(--purple); color: #fff; }
+    });
 
-        /* Main Editor Area */
-        .main-area {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
+    // Load Default Content
+    elInput.value = "on join:\n\tsend \"&aWelcome!\" to player\n\tset {joins.%player%} to 1";
+    updateEditor();
+</script>
 
-        .status-bar {
-            height: 30px;
-            background-color: var(--bg-darker);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 15px;
-            font-size: 12px;
-            color: var(--comment);
-        }
-
-        /* Editor Wrapper */
-        .editor-wrapper {
-            flex
+</body>
+</html>
