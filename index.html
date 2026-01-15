@@ -2,65 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Skript IDE Pro - Mega Support</title>
+    <title>Skript IDE Pro - GitHub Pages</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
-            --green: #50fa7b; --cyan: #8be9fd; --orange: #ffb86c; --pink: #ff79c6;
-            --red: #ff5555;
+            --cyan: #8be9fd; --pink: #ff79c6; --red: #ff5555;
         }
-        body, html { 
-            margin: 0; padding: 0; height: 100%; 
-            background: #191a21; font-family: 'Segoe UI', sans-serif; overflow: hidden;
-        }
+        body, html { margin: 0; padding: 0; height: 100%; background: #191a21; font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar */
+        /* Layout */
         .sidebar { width: 220px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #444; }
-        .sidebar-header { padding: 15px; font-size: 12px; color: var(--purple); font-weight: bold; letter-spacing: 1px; }
-        .file-list { flex: 1; overflow-y: auto; }
-        .file-item { padding: 8px 15px; font-size: 13px; color: var(--fg); cursor: pointer; border-left: 3px solid transparent; }
-        .file-item.active { background: var(--selection); border-left-color: var(--purple); }
+        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); }
+        .ai-sidebar { width: 320px; background: var(--sidebar); border-left: 1px solid #444; display: flex; flex-direction: column; }
         
-        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-        .toolbar { height: 35px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; font-size: 12px; color: var(--comment); border-bottom: 1px solid #444; justify-content: space-between; }
-        
+        /* Buttons & UI */
+        .toolbar { height: 45px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #444; justify-content: space-between; }
+        .tool-btn { background: #343746; border: 1px solid #444; color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .tool-btn:hover { border-color: var(--purple); }
+        .primary-btn { background: var(--purple); border: none; color: white; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
+
+        /* Settings Modal */
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); box-shadow: 0 0 20px rgba(189, 147, 249, 0.2); }
+        .setting-section { margin-bottom: 20px; }
+        .setting-label { display: block; font-size: 11px; color: var(--purple); font-weight: bold; text-transform: uppercase; margin-bottom: 8px; }
+        .input-field { width: 100%; background: #191a21; border: 1px solid #444; color: white; padding: 12px; border-radius: 6px; box-sizing: border-box; outline: none; font-family: monospace; }
+        .input-field:focus { border-color: var(--cyan); }
+
         /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; user-select: none; border-right: 1px solid #333; }
-        .input-area { flex: 1; position: relative; overflow: hidden; }
-        
-        #editing, #highlighting {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            margin: 0; padding: 10px; border: 0; font-family: 'Fira Code', 'Consolas', monospace;
-            font-size: 14px; line-height: 1.5; tab-size: 4; white-space: pre;
-            box-sizing: border-box; overflow: auto;
-        }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: 'Fira Code', monospace; font-size: 14px; border-right: 1px solid #333; }
+        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: 0; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; }
         #editing { z-index: 2; background: transparent; color: transparent; caret-color: white; outline: none; resize: none; }
-        #highlighting { z-index: 1; color: var(--fg); pointer-events: none; }
+        #highlighting { z-index: 1; pointer-events: none; }
 
-        /* Modal Settings */
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; }
-        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 480px; color: white; border: 1px solid var(--purple); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        .controls-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        .search-container { flex: 1; position: relative; }
-        #addon-search { width: 100%; padding: 10px 12px; background: #191a21; border: 1px solid #444; border-radius: 6px; color: white; box-sizing: border-box; outline: none; }
-        #addon-search:focus { border-color: var(--purple); }
+        /* AI Chat */
+        .ai-chat { flex: 1; overflow-y: auto; padding: 15px; font-size: 13px; }
+        .ai-msg { margin-bottom: 15px; padding: 12px; border-radius: 8px; line-height: 1.5; }
+        .ai-msg.bot { background: #343746; border-left: 3px solid var(--purple); }
+        .ai-msg.user { background: var(--selection); text-align: right; }
 
-        .btn-disable-all { padding: 0 15px; background: rgba(255, 85, 85, 0.1); border: 1px solid var(--red); color: var(--red); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
-        .btn-disable-all:hover { background: var(--red); color: white; }
-
-        .addon-list { max-height: 350px; overflow-y: auto; margin: 10px 0; padding-right: 10px; }
-        .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; padding: 8px; border-radius: 4px; transition: 0.2s; background: rgba(255,255,255,0.03); }
-        .addon-toggle:hover { background: var(--selection); }
-        .addon-toggle input { cursor: pointer; accent-color: var(--purple); width: 16px; height: 16px; }
-
+        /* Syntax Colors */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
-        .sk-addon { color: #bd93f9; font-weight: 500; }
-        .sk-var { color: var(--orange); }
+        .sk-var { color: #ffb86c; }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: #f1fa8c; }
     </style>
@@ -69,32 +56,52 @@
 
 <div id="modal-overlay">
     <div id="modal">
-        <h2 style="margin-top:0; color:var(--purple); font-size: 1.2rem;">Addon Manager</h2>
+        <h2 style="margin-top:0; color:var(--purple)">Global Settings</h2>
         
-        <div class="controls-row">
-            <div class="search-container">
-                <input type="text" id="addon-search" placeholder="Search addons..." onkeyup="filterAddons()">
-            </div>
-            <button class="btn-disable-all" onclick="disableAllAddons()">Disable All</button>
+        <div class="setting-section">
+            <label class="setting-label">1. OpenAI API Key</label>
+            <input type="password" id="api-key-input" class="input-field" placeholder="sk-..." onchange="saveConfig()">
+            <p style="font-size: 10px; color: var(--comment); margin: 5px 0 0 0;">Key is stored in your browser's local cache.</p>
+        </div>
+
+        <div class="setting-section">
+            <label class="setting-label">2. AI Model</label>
+            <select id="model-select" class="input-field" style="appearance: none;" onchange="saveConfig()">
+                <option value="gpt-4o">GPT-4o (Fast & Recommended)</option>
+                <option value="gpt-4">GPT-4 (Powerful)</option>
+                <option value="gpt-3.5-turbo">GPT-3.5 (Legacy)</option>
+            </select>
+        </div>
+
+        <div class="setting-section">
+            <label class="setting-label">3. Addon Syntax Support</label>
+            <input type="text" id="addon-search" class="input-field" placeholder="Search 100+ addons..." onkeyup="filterAddons()">
+            <div id="addon-list" style="max-height: 150px; overflow-y: auto; margin-top: 10px; border: 1px solid #444; padding: 5px; border-radius: 4px;"></div>
         </div>
         
-        <div class="addon-list" id="addon-list-container"></div>
-        
-        <button onclick="closeSettings()" style="width:100%; margin-top:10px; padding:12px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:6px; font-weight:bold;">Save & Close</button>
+        <button class="primary-btn" onclick="closeSettings()">SAVE & APPLY CHANGES</button>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-header">SCRIPTS</div>
-        <div id="file-list" class="file-list">
-            <div class="file-item active">script.sk</div>
+        <div style="padding: 15px; font-weight: bold; border-bottom: 1px solid #444;">EXPLORER</div>
+        <div style="flex: 1; padding: 10px;">
+            <div style="background: var(--selection); padding: 8px; border-radius: 4px; font-size: 13px;">📄 main.sk</div>
+        </div>
+        <div style="padding: 15px; border-top: 1px solid #444;">
+            <button class="tool-btn" style="width:100%; margin-bottom: 8px;" onclick="importFile()">📂 OPEN FILE</button>
+            <button class="tool-btn" style="width:100%;" onclick="exportFile()">💾 DOWNLOAD .SK</button>
         </div>
     </div>
+
     <div class="main">
         <div class="toolbar">
-            <span>script.sk</span>
-            <span style="cursor:pointer; background: var(--selection); padding: 4px 10px; border-radius: 4px; font-weight: bold;" onclick="openSettings()">⚙️ Manage Addons</span>
+            <span style="color: var(--purple); font-weight: bold;">main.sk</span>
+            <div style="display:flex; gap: 8px;">
+                <button class="tool-btn" onclick="explainHighlight()" style="color: var(--cyan); border-color: var(--cyan);">✨ EXPLAIN</button>
+                <button class="tool-btn" onclick="openSettings()" style="background: var(--purple); color: white; border: none;">⚙️ SETTINGS & ADDONS</button>
+            </div>
         </div>
         <div class="editor-container">
             <div id="gutter">1</div>
@@ -104,114 +111,119 @@
             </div>
         </div>
     </div>
+
+    <div class="ai-sidebar">
+        <div style="padding: 15px; font-weight: bold; border-bottom: 1px solid #444;">AI ASSISTANT</div>
+        <div class="ai-chat" id="ai-chat">
+            <div class="ai-msg bot">Settings updated. Please ensure your <b>OpenAI Key</b> is entered in the <b>⚙️ Settings</b> menu to begin.</div>
+        </div>
+        <div style="padding: 15px; background: var(--sidebar); border-top: 1px solid #444;">
+            <div style="display:flex; gap: 5px;">
+                <input type="text" id="ai-input" class="input-field" placeholder="Ask a question..." onkeypress="if(event.key==='Enter') askAI()">
+                <button onclick="askAI()" style="background:var(--purple); border:none; color:white; padding: 0 15px; border-radius: 6px; cursor: pointer;">➔</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
     const elInput = document.getElementById('editing');
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
+    const aiChat = document.getElementById('ai-chat');
 
-    const addonRegistry = {
-        'skript-reflect': { name: 'Skript-Reflect', keywords: 'import|reflect|java (object|class|method|field)|constructor|proxy' },
-        'skbee': { name: 'SkBee', keywords: 'nbt (compound|list|tag)|recipe|scoreboard tag|tag of' },
-        'skript-yaml': { name: 'Skript-Yaml', keywords: 'yaml (value|node|list)|load yaml|save yaml' },
-        'skcord': { name: 'skCord', keywords: 'discord|webhook|embed|token' },
-        'skript-gui': { name: 'Skript-GUI', keywords: 'create [a] gui|make gui slot|open last gui' },
-        'skquery': { name: 'SkQuery', keywords: 'json|midi|firework|mysql|query' }
+    let config = JSON.parse(localStorage.getItem('sk_ide_config')) || {
+        key: '',
+        model: 'gpt-4o',
+        addons: {'skbee': true}
     };
 
-    const rawList = ["Skript", "PoaSK", "SkNMS", "skript-pk", "skRayFall", "Skript-Particle", "Lusk", "skLib", "Khoryl", "Skonic", "MundoSK", "skript-nexo", "skript-itemsadder", "TuSKe", "SkJade", "skript-placeholders", "skUtilities", "Skcrew", "Skirt", "FancySK", "skript-advancements", "skript-worldedit", "SkHttp", "MiSK", "Skream", "skript-packet", "DisplayEntityUtils", "skript-scoreboards", "SkCheez", "MorkazSk", "SkCheese", "skJson", "skript-holo", "Ersatz", "skript-bossbar", "NoteSK", "Skematic", "PermSk", "PriSKm", "SkEssentials (Legacy)", "Skelocity", "Skript-Citizens", "skript-npc", "SkScoreboard", "BungeeSK", "Kosmos", "Parties", "Skacket", "skDragon", "skript-teams", "ThatPacketAddon", "Conquer", "GameAPI", "Hippo", "skript-db", "Sky", "Biosphere2", "LabySK", "Linky", "Skent", "SkImage", "SKPermissionsEx", "SkriptPDC", "SkUniversal", "SkVault", "HolographicDisplaysAddon", "PlayerMention", "SkGrpc", "skript-oraxen", "skript-storage", "BoringSK", "Fawesk", "JobsSK", "Plosk", "SkCloudnet", "skGlow", "Skitch", "SkLogs", "SkMore", "Skript-Towny", "Skungee", "SkUtils", "Diskuise", "McQQBot", "MongoSK", "Pesk", "PotatoSK", "SkBriggy", "SkEmail", "SkEssentials", "SkRedis", "SkriptWebAPI", "SKull", "ZulfBungee", "Animated-Skript", "BeastTokenSk", "BungeeMaster", "EventCore", "FunkySk", "LiteBansSk", "oopsk", "Reqn", "RotateSk", "SetTickRateAddon", "SkAnimation", "SkArclight", "SkCoAPI", "SkDisaster", "SkDynmap", "Skelegram", "Skester", "SkFilter", "skGoat", "skGull", "SkMail", "SkMaps", "SkMaze", "SkNebula", "SKNoise", "Skore", "skProfession", "SkProtobuf", "SkProxy", "Skraper", "Skript-AnvilGUI", "Skript-GPT", "skript-json", "skript-logs", "skript-math", "Skript-Merchants", "skript-mirror", "skript-ping", "skript-simple-voice-chat", "Skript-Translate", "skript-votifier-hook", "SkriptLanguage (Addon)", "Skriptor", "skScraft", "SkVelo", "skWhitelist", "SlimeLink", "Tablisknu", "Ticker", "TranSKator", "WebSKT", "Wildfuskator", "xiaojie-gui", "WolfSk2_"];
+    // Initialize UI
+    document.getElementById('api-key-input').value = config.key;
+    document.getElementById('model-select').value = config.model;
 
-    rawList.forEach(name => {
-        const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (!addonRegistry[id]) {
-            addonRegistry[id] = { name: name, keywords: name.toLowerCase().split('-')[0] };
+    function saveConfig() {
+        config.key = document.getElementById('api-key-input').value;
+        config.model = document.getElementById('model-select').value;
+        localStorage.setItem('sk_ide_config', JSON.stringify(config));
+    }
+
+    async function askAI(forcePrompt = null) {
+        const input = document.getElementById('ai-input');
+        const query = forcePrompt || input.value.trim();
+        if(!query) return;
+        
+        aiChat.innerHTML += `<div class="ai-msg user">${forcePrompt ? "<i>Explaining code...</i>" : query}</div>`;
+        input.value = '';
+        aiChat.scrollTop = aiChat.scrollHeight;
+
+        if(!config.key) {
+            botSay("API Key is missing! Open Settings to add it.");
+            return;
         }
-    });
 
-    let activeAddons = JSON.parse(localStorage.getItem('skMegaAddons')) || { 'skbee': true, 'skriptreflect': true };
-
-    function init() {
-        renderAddonList();
-        elInput.value = "# All addons supported!\non join:\n\tset nbt of player to {Test:1}\n\tbroadcast \"Welcome!\"";
-        updateEditor();
+        try {
+            const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.key}` },
+                body: JSON.stringify({
+                    model: config.model,
+                    messages: [{role: 'system', content: 'You are a Skript expert. Help the user with Minecraft scripts. Use markdown.'}, {role: 'user', content: query}]
+                })
+            });
+            const data = await resp.json();
+            const text = data.choices[0].message.content;
+            botSay(text.replace(/\n/g, '<br>'));
+        } catch (e) { botSay("API Error. Check your key/credits."); }
     }
 
-    function renderAddonList() {
-        const container = document.getElementById('addon-list-container');
-        container.innerHTML = '';
-        Object.keys(addonRegistry).sort().forEach(id => {
-            const div = document.createElement('div');
-            div.className = 'addon-toggle';
-            div.setAttribute('data-id', id);
-            div.setAttribute('data-name', addonRegistry[id].name.toLowerCase());
-            div.innerHTML = `<span>${addonRegistry[id].name}</span>
-                             <input type="checkbox" id="check-${id}" ${activeAddons[id] ? 'checked' : ''} onchange="toggleAddon('${id}')">`;
-            container.appendChild(div);
-        });
+    function botSay(text) {
+        aiChat.innerHTML += `<div class="ai-msg bot">${text}</div>`;
+        aiChat.scrollTop = aiChat.scrollHeight;
     }
 
-    function disableAllAddons() {
-        if(confirm("Are you sure you want to disable syntax highlighting for ALL addons?")) {
-            activeAddons = {};
-            localStorage.setItem('skMegaAddons', JSON.stringify(activeAddons));
-            renderAddonList();
-            updateEditor();
-        }
-    }
-
-    function filterAddons() {
-        const query = document.getElementById('addon-search').value.toLowerCase();
-        const items = document.querySelectorAll('.addon-toggle');
-        items.forEach(item => {
-            item.style.display = item.getAttribute('data-name').includes(query) ? 'flex' : 'none';
-        });
-    }
-
-    function openSettings() { 
-        document.getElementById('modal-overlay').style.display = 'block'; 
-        document.getElementById('addon-search').focus();
-    }
-    
-    function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
-    
-    function toggleAddon(id) {
-        activeAddons[id] = document.getElementById(`check-${id}`).checked;
-        localStorage.setItem('skMegaAddons', JSON.stringify(activeAddons));
-        updateEditor();
-    }
-
-    function syncScroll() {
-        elOutput.scrollTop = elInput.scrollTop;
-        elOutput.scrollLeft = elInput.scrollLeft;
-        elGutter.scrollTop = elInput.scrollTop;
+    function explainHighlight() {
+        const sel = elInput.value.substring(elInput.selectionStart, elInput.selectionEnd);
+        if(!sel) return alert("Highlight code first!");
+        askAI("Explain this Skript code snippet:\n\n" + sel);
     }
 
     function updateEditor() {
         let code = elInput.value;
-        const lines = code.split('\n').length;
-        elGutter.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
-
+        elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;");
         h = h.replace(/"([^"]*)"/g, `<span class="sk-string">"$1"</span>`);
-
-        for (let id in addonRegistry) {
-            if (activeAddons[id]) {
-                const regex = new RegExp(`\\b(${addonRegistry[id].keywords})\\b`, 'gi');
-                h = h.replace(regex, '<span class="sk-addon">$1</span>');
-            }
-        }
-
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|message|if|else|loop|while|return|import|options|command)\b/g, '<span class="sk-effect">$1</span>');
+        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|if|else|loop|command)\b/g, '<span class="sk-effect">$1</span>');
         h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
         h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
-
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
     }
 
-    init();
-</script>
+    function syncScroll() { 
+        elOutput.scrollTop = elInput.scrollTop; 
+        elOutput.scrollLeft = elInput.scrollLeft; 
+        elGutter.scrollTop = elInput.scrollTop; 
+    }
 
+    function openSettings() { document.getElementById('modal-overlay').style.display = 'block'; }
+    function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
+    function exportFile() {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([elInput.value], {type: 'text/plain'}));
+        a.download = "script.sk"; a.click();
+    }
+    function importFile() {
+        const i = document.createElement('input'); i.type = 'file';
+        i.onchange = e => {
+            const r = new FileReader();
+            r.onload = arg => { elInput.value = arg.target.result; updateEditor(); };
+            r.readAsText(e.target.files[0]);
+        }; i.click();
+    }
+
+    elInput.value = "on join:\n\tbroadcast \"Ready to code!\"\n\t# Click Settings to add your key!";
+    updateEditor();
+</script>
 </body>
 </html>
