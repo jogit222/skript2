@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Skript IDE Pro - Mega Support</title>
+    <title>Skript IDE Pro - Data Edition</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
             --green: #50fa7b; --cyan: #8be9fd; --orange: #ffb86c; --pink: #ff79c6;
+            --yellow: #f1fa8c;
         }
         body, html { 
             margin: 0; padding: 0; height: 100%; 
@@ -15,45 +16,62 @@
         }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar */
-        .sidebar { width: 180px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #444; }
-        .sidebar-header { padding: 15px; font-size: 12px; color: var(--purple); font-weight: bold; }
+        /* Sidebar & File Manager */
+        .sidebar { width: 200px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #444; }
+        .sidebar-header { padding: 15px; font-size: 11px; color: var(--comment); font-weight: bold; display: flex; justify-content: space-between; align-items: center; letter-spacing: 1px;}
         .file-list { flex: 1; overflow-y: auto; }
-        .file-item { padding: 8px 15px; font-size: 13px; color: var(--fg); cursor: pointer; border-left: 3px solid transparent; }
+        .file-item { 
+            padding: 6px 15px; font-size: 13px; color: var(--fg); cursor: pointer; 
+            display: flex; justify-content: space-between; align-items: center;
+            border-left: 3px solid transparent;
+        }
+        .file-item:hover { background: #343746; }
         .file-item.active { background: var(--selection); border-left-color: var(--purple); }
-        
+        .file-icon { margin-right: 8px; font-size: 12px; }
+        .delete-file { color: var(--comment); font-size: 16px; visibility: hidden; }
+        .file-item:hover .delete-file { visibility: visible; }
+
+        /* Main Editor */
         .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .toolbar { height: 35px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; font-size: 12px; color: var(--comment); border-bottom: 1px solid #444; justify-content: space-between; }
         
-        /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; user-select: none; }
+        #gutter { width: 45px; background: var(--sidebar); color: #4b5263; padding: 10px 5px; text-align: right; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; user-select: none; border-right: 1px solid #333; }
         .input-area { flex: 1; position: relative; overflow: hidden; }
         
         #editing, #highlighting {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            margin: 0; padding: 10px; border: 0; font-family: 'Fira Code', 'Consolas', monospace;
+            margin: 0; padding: 10px; border: 0; font-family: 'Fira Code', monospace;
             font-size: 14px; line-height: 1.5; tab-size: 4; white-space: pre;
             box-sizing: border-box; overflow: auto;
         }
         #editing { z-index: 2; background: transparent; color: transparent; caret-color: white; outline: none; resize: none; }
         #highlighting { z-index: 1; color: var(--fg); pointer-events: none; }
 
-        /* Modal Settings */
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; }
-        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 350px; color: white; border: 1px solid var(--purple); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .addon-list { max-height: 300px; overflow-y: auto; margin: 15px 0; padding-right: 5px; }
-        .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; padding: 5px; border-radius: 4px; transition: 0.2s; }
-        .addon-toggle:hover { background: var(--selection); }
-        .addon-toggle input { cursor: pointer; accent-color: var(--purple); }
+        /* Autocomplete Overlay */
+        #autocomplete {
+            position: absolute; display: none; background: var(--sidebar); border: 1px solid var(--purple);
+            z-index: 1000; border-radius: 4px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            min-width: 200px;
+        }
+        .suggest-item { padding: 6px 12px; color: var(--fg); cursor: pointer; font-size: 13px; }
+        .suggest-item.active { background: var(--purple); color: white; }
 
-        /* Highlighting Styles */
+        /* Settings Modal */
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 350px; color: white; border: 1px solid var(--purple); }
+        .addon-list { max-height: 250px; overflow-y: auto; margin: 15px 0; border-bottom: 1px solid #444; }
+        .addon-toggle { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #333; }
+
+        /* Syntax Styles */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
-        .sk-addon { color: #bd93f9; font-weight: 500; }
+        .sk-addon { color: var(--purple); }
         .sk-var { color: var(--orange); }
+        .sk-string { color: var(--yellow); }
         .sk-comment { color: var(--comment); font-style: italic; }
-        .sk-string { color: #f1fa8c; }
+        .json-key { color: var(--pink); }
+        .yml-key { color: var(--cyan); }
         .mc-color { font-weight: bold; }
     </style>
 </head>
@@ -61,33 +79,31 @@
 
 <div id="modal-overlay">
     <div id="modal">
-        <h2 style="margin-top:0; color:var(--purple)">Addon Support</h2>
-        <p style="font-size:12px; color:var(--comment)">Toggle syntax highlighting for your plugins:</p>
-        
-        <div class="addon-list" id="addon-list-container">
-            </div>
-        
-        <button onclick="closeSettings()" style="width:100%; margin-top:10px; padding:10px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:6px; font-weight:bold;">Save Changes</button>
+        <h3 style="margin:0; color:var(--purple)">Workspace Settings</h3>
+        <div class="addon-list" id="addon-list-ui"></div>
+        <button onclick="closeSettings()" style="width:100%; padding:10px; background:var(--purple); border:none; color:white; border-radius:5px; cursor:pointer;">Close</button>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-header">SCRIPTS</div>
-        <div id="file-list" class="file-list">
-            <div class="file-item active">demo_addon.sk</div>
+        <div class="sidebar-header">
+            EXPLORER 
+            <span onclick="createNewFile()" style="cursor:pointer; color:var(--purple)">+ New</span>
         </div>
+        <div id="file-list" class="file-list"></div>
     </div>
     <div class="main">
         <div class="toolbar">
-            <span>demo_addon.sk</span>
-            <span style="cursor:pointer" onclick="openSettings()">⚙️ Addons & Settings</span>
+            <span id="current-filename">loading...</span>
+            <span style="cursor:pointer" onclick="openSettings()">⚙️ Settings</span>
         </div>
         <div class="editor-container">
             <div id="gutter">1</div>
             <div class="input-area">
+                <div id="autocomplete"></div>
                 <pre id="highlighting"></pre>
-                <textarea id="editing" spellcheck="false" oninput="updateEditor()" onscroll="syncScroll()"></textarea>
+                <textarea id="editing" spellcheck="false" oninput="handleInput()" onscroll="syncScroll()" onkeydown="handleKeys(event)"></textarea>
             </div>
         </div>
     </div>
@@ -97,50 +113,57 @@
     const elInput = document.getElementById('editing');
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
+    const elAuto = document.getElementById('autocomplete');
 
-    // Addon Definition Registry
-    const addonRegistry = {
-        'skbee': { name: 'SkBee', keywords: 'nbt (compound|list|tag)|recipe|scoreboard tag|tag of|components' },
-        'skperms': { name: 'SkPerms', keywords: 'permission|group of|rank|has permission|add permission' },
-        'skrayfall': { name: 'SkRayFall', keywords: 'hologram|sidebar|scoreboard line|objective|tablist' },
-        'sk-advancements': { name: 'Skript-Advancements', keywords: 'advancement|toast|display advancement|make advancement' },
-        'sk-bossbar': { name: 'Skript-BossBar', keywords: 'bossbar|bar color|bar style|display bossbar' },
-        'sk-itemsadder': { name: 'Skript-ItemsAdder', keywords: 'ia item|itemsadder|ia folder|custom stack|ia gui' },
-        'sk-scoreboards': { name: 'Skript-Scoreboards', keywords: 'new scoreboard|setup scoreboard|scoreboard title|scoreboard slot' },
-        'sk-utilities': { name: 'Sk-Utilities', keywords: 'yaml|file|folder|download|sound|play raw sound' },
-        'sk-gui': { name: 'Skript-GUI', keywords: 'create a gui|make gui slot|open last gui|unstealable' }
+    // 1. Storage & Files
+    let files = JSON.parse(localStorage.getItem('sk_files_v3')) || {
+        'config.yml': 'settings:\n  prefix: "&8[&bServer&8]"\n  max-players: 50',
+        'data.json': '{\n  "uuids": {\n    "player1": "active"\n  }\n}',
+        'main.sk': 'on join:\n\tload yaml "config.yml" as "config"\n\tset {_p} to yaml value "settings.prefix" from "config"\n\tsend "%{_p}% &aLoaded!"'
     };
+    let currentFile = 'main.sk';
 
-    let activeAddons = JSON.parse(localStorage.getItem('skAddons_v2')) || { 'skbee': true, 'sk-gui': true };
+    // 2. Addon Registry
+    const addonRegistry = {
+        'sk-yml': { name: 'Skript-YML', keywords: 'load yaml|save yaml|yaml (value|node|list|directory)|unload yaml|y[a]ml' },
+        'sk-json': { name: 'Skript-JSON', keywords: 'json (object|value|map|list)|parse json|map json|as json' },
+        'skbee': { name: 'SkBee', keywords: 'nbt|recipe|scoreboard|tag' },
+        'sk-gui': { name: 'Skript-GUI', keywords: 'gui|slot|unstealable' }
+    };
+    let activeAddons = JSON.parse(localStorage.getItem('sk_addons_v3')) || { 'sk-yml': true, 'sk-json': true };
 
-    // Initialize UI
+    // --- Core Logic ---
+
     function init() {
-        const container = document.getElementById('addon-list-container');
-        for (let id in addonRegistry) {
-            const div = document.createElement('div');
-            div.className = 'addon-toggle';
-            div.innerHTML = `<span>${addonRegistry[id].name}</span>
-                             <input type="checkbox" id="check-${id}" ${activeAddons[id] ? 'checked' : ''} onchange="toggleAddon('${id}')">`;
-            container.appendChild(div);
+        renderFileList();
+        renderAddonToggles();
+        switchFile(currentFile);
+    }
+
+    function switchFile(name) {
+        files[currentFile] = elInput.value; // save old
+        currentFile = name;
+        elInput.value = files[name];
+        document.getElementById('current-filename').innerText = name;
+        renderFileList();
+        updateEditor();
+    }
+
+    function createNewFile() {
+        const name = prompt("File name (e.g. storage.yml):");
+        if (name) {
+            files[name] = "";
+            switchFile(name);
         }
-        
-        elInput.value = "# SkBee & ItemsAdder Demo\non join:\n\tset nbt of player to {test:1}\n\tgive ia item \"my_custom_sword\" to player\n\tcreate a gui with id \"test\":\n\t\tmake gui slot 0 with diamond\n\topen last gui to player";
-        updateEditor();
     }
 
-    function openSettings() { document.getElementById('modal-overlay').style.display = 'block'; }
-    function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
-    
-    function toggleAddon(id) {
-        activeAddons[id] = document.getElementById(`check-${id}`).checked;
-        localStorage.setItem('skAddons_v2', JSON.stringify(activeAddons));
-        updateEditor();
-    }
-
-    function syncScroll() {
-        elOutput.scrollTop = elInput.scrollTop;
-        elOutput.scrollLeft = elInput.scrollLeft;
-        elGutter.scrollTop = elInput.scrollTop;
+    function deleteFile(e, name) {
+        e.stopPropagation();
+        if (Object.keys(files).length > 1) {
+            delete files[name];
+            if (currentFile === name) currentFile = Object.keys(files)[0];
+            switchFile(currentFile);
+        }
     }
 
     function updateEditor() {
@@ -149,32 +172,119 @@
         elGutter.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
 
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        const ext = currentFile.split('.').pop();
 
-        // 1. Strings & MC Colors
-        h = h.replace(/"([^"]*)"/g, (match, content) => {
-            let formatted = content.replace(/&amp;([0-9a-f])/g, '<span class="mc-color" style="color:var(--mc-$1)">$1</span>');
-            return `<span class="sk-string">"${content}"</span>`;
-        });
-
-        // 2. Addon Keywords (Dynamic from Registry)
-        for (let id in addonRegistry) {
-            if (activeAddons[id]) {
-                const regex = new RegExp(`\\b(${addonRegistry[id].keywords})\\b`, 'gi');
-                h = h.replace(regex, '<span class="sk-addon">$1</span>');
+        if (ext === 'sk') {
+            // Skript Highlighting
+            h = h.replace(/"([^"]*)"/g, (m, c) => {
+                let fmt = c.replace(/&amp;([0-9a-f])/g, '<span class="mc-color" style="color:var(--mc-$1)">$1</span>');
+                return `<span class="sk-string">"${c}"</span>`;
+            });
+            for (let id in addonRegistry) {
+                if (activeAddons[id]) {
+                    const regex = new RegExp(`\\b(${addonRegistry[id].keywords})\\b`, 'gi');
+                    h = h.replace(regex, '<span class="sk-addon">$1</span>');
+                }
             }
+            h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
+            h = h.replace(/\b(send|set|add|wait|stop|message|give|broadcast|if|else|loop)\b/g, '<span class="sk-effect">$1</span>');
+            h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
+        } 
+        else if (ext === 'yml' || ext === 'yaml') {
+            // YAML Highlighting
+            h = h.replace(/^(\s*)([\w-]+):/gm, '$1<span class="yml-key">$2</span>:');
+            h = h.replace(/: (.*)$/gm, ': <span class="sk-string">$1</span>');
+        } 
+        else if (ext === 'json') {
+            // JSON Highlighting
+            h = h.replace(/"([^"]+)"\s*:/g, '<span class="json-key">"$1"</span>:');
+            h = h.replace(/:\s*"([^"]+)"/g, ': <span class="sk-string">"$1"</span>');
         }
 
-        // 3. Base Skript Syntax
-        h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|message|if|else|loop|while|return)\b/g, '<span class="sk-effect">$1</span>');
-        h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
         h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
-
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
+        
+        localStorage.setItem('sk_files_v3', JSON.stringify(files));
     }
 
-    init();
-</script>
+    // --- Data Connectivity (Path Autocomplete) ---
+    function handleInput() {
+        updateEditor();
+        const cursor = elInput.selectionStart;
+        const textBefore = elInput.value.substring(0, cursor);
+        
+        // If typing a path inside quotes for YAML/JSON loading
+        if (textBefore.match(/(load yaml|parse json|from|save yaml)\s+"$/i)) {
+            showPathSuggestions();
+        } else {
+            elAuto.style.display = 'none';
+        }
+    }
 
-</body>
-</html>
+    function showPathSuggestions() {
+        const fileNames = Object.keys(files);
+        elAuto.innerHTML = '';
+        fileNames.forEach(name => {
+            const div = document.createElement('div');
+            div.className = 'suggest-item';
+            div.innerText = name;
+            div.onclick = () => {
+                const s = elInput.selectionStart;
+                elInput.value = elInput.value.substring(0, s) + name + '"' + elInput.value.substring(s);
+                elAuto.style.display = 'none';
+                updateEditor();
+            };
+            elAuto.appendChild(div);
+        });
+        elAuto.style.display = 'block';
+        elAuto.style.left = '100px'; 
+        elAuto.style.top = '100px'; 
+    }
+
+    // --- UI Rendering ---
+
+    function renderFileList() {
+        const container = document.getElementById('file-list');
+        container.innerHTML = '';
+        for (let name in files) {
+            const ext = name.split('.').pop();
+            const icon = ext === 'sk' ? '📜' : (ext === 'yml' ? '⚙️' : '📦');
+            const div = document.createElement('div');
+            div.className = `file-item ${name === currentFile ? 'active' : ''}`;
+            div.innerHTML = `<div><span class="file-icon">${icon}</span>${name}</div>
+                             <span class="delete-file" onclick="deleteFile(event, '${name}')">×</span>`;
+            div.onclick = () => switchFile(name);
+            container.appendChild(div);
+        }
+    }
+
+    function renderAddonToggles() {
+        const ui = document.getElementById('addon-list-ui');
+        ui.innerHTML = '';
+        for (let id in addonRegistry) {
+            const div = document.createElement('div');
+            div.className = 'addon-toggle';
+            div.innerHTML = `<span>${addonRegistry[id].name}</span>
+                             <input type="checkbox" ${activeAddons[id] ? 'checked' : ''} onchange="toggleAddon('${id}', this.checked)">`;
+            ui.appendChild(div);
+        }
+    }
+
+    function toggleAddon(id, val) {
+        activeAddons[id] = val;
+        localStorage.setItem('sk_addons_v3', JSON.stringify(activeAddons));
+        updateEditor();
+    }
+
+    function openSettings() { document.getElementById('modal-overlay').style.display = 'block'; }
+    function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
+    function syncScroll() { 
+        elOutput.scrollTop = elInput.scrollTop; 
+        elOutput.scrollLeft = elInput.scrollLeft; 
+        elGutter.scrollTop = elInput.scrollTop; 
+    }
+    function handleKeys(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const s = elInput.selectionStart;
+            elInput.value = elInput.value.substring(0, s) + "\t" + elInput.value.substring(elInput
