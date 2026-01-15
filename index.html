@@ -8,6 +8,7 @@
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
             --green: #50fa7b; --cyan: #8be9fd; --orange: #ffb86c; --pink: #ff79c6;
+            --red: #ff5555;
         }
         body, html { 
             margin: 0; padding: 0; height: 100%; 
@@ -41,19 +42,21 @@
 
         /* Modal Settings */
         #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; }
-        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 450px; color: white; border: 1px solid var(--purple); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 480px; color: white; border: 1px solid var(--purple); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
-        /* Search Box */
-        .search-container { margin-bottom: 15px; position: relative; }
-        #addon-search { width: 100%; padding: 10px 12px; background: #191a21; border: 1px solid #444; border-radius: 6px; color: white; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+        .controls-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-container { flex: 1; position: relative; }
+        #addon-search { width: 100%; padding: 10px 12px; background: #191a21; border: 1px solid #444; border-radius: 6px; color: white; box-sizing: border-box; outline: none; }
         #addon-search:focus { border-color: var(--purple); }
+
+        .btn-disable-all { padding: 0 15px; background: rgba(255, 85, 85, 0.1); border: 1px solid var(--red); color: var(--red); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
+        .btn-disable-all:hover { background: var(--red); color: white; }
 
         .addon-list { max-height: 350px; overflow-y: auto; margin: 10px 0; padding-right: 10px; }
         .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; padding: 8px; border-radius: 4px; transition: 0.2s; background: rgba(255,255,255,0.03); }
         .addon-toggle:hover { background: var(--selection); }
         .addon-toggle input { cursor: pointer; accent-color: var(--purple); width: 16px; height: 16px; }
 
-        /* Highlighting Styles */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-addon { color: #bd93f9; font-weight: 500; }
@@ -68,12 +71,14 @@
     <div id="modal">
         <h2 style="margin-top:0; color:var(--purple); font-size: 1.2rem;">Addon Manager</h2>
         
-        <div class="search-container">
-            <input type="text" id="addon-search" placeholder="Search 100+ addons..." onkeyup="filterAddons()">
+        <div class="controls-row">
+            <div class="search-container">
+                <input type="text" id="addon-search" placeholder="Search addons..." onkeyup="filterAddons()">
+            </div>
+            <button class="btn-disable-all" onclick="disableAllAddons()">Disable All</button>
         </div>
         
-        <div class="addon-list" id="addon-list-container">
-            </div>
+        <div class="addon-list" id="addon-list-container"></div>
         
         <button onclick="closeSettings()" style="width:100%; margin-top:10px; padding:12px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:6px; font-weight:bold;">Save & Close</button>
     </div>
@@ -83,12 +88,12 @@
     <div class="sidebar">
         <div class="sidebar-header">SCRIPTS</div>
         <div id="file-list" class="file-list">
-            <div class="file-item active">main.sk</div>
+            <div class="file-item active">script.sk</div>
         </div>
     </div>
     <div class="main">
         <div class="toolbar">
-            <span>main.sk</span>
+            <span>script.sk</span>
             <span style="cursor:pointer; background: var(--selection); padding: 4px 10px; border-radius: 4px; font-weight: bold;" onclick="openSettings()">⚙️ Manage Addons</span>
         </div>
         <div class="editor-container">
@@ -106,7 +111,6 @@
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
 
-    // Registry Setup
     const addonRegistry = {
         'skript-reflect': { name: 'Skript-Reflect', keywords: 'import|reflect|java (object|class|method|field)|constructor|proxy' },
         'skbee': { name: 'SkBee', keywords: 'nbt (compound|list|tag)|recipe|scoreboard tag|tag of' },
@@ -129,7 +133,7 @@
 
     function init() {
         renderAddonList();
-        elInput.value = "# Search for addons in settings!\non join:\n\tset nbt of player to {Search:true}\n\tbroadcast \"Check the settings menu!\"";
+        elInput.value = "# All addons supported!\non join:\n\tset nbt of player to {Test:1}\n\tbroadcast \"Welcome!\"";
         updateEditor();
     }
 
@@ -139,6 +143,7 @@
         Object.keys(addonRegistry).sort().forEach(id => {
             const div = document.createElement('div');
             div.className = 'addon-toggle';
+            div.setAttribute('data-id', id);
             div.setAttribute('data-name', addonRegistry[id].name.toLowerCase());
             div.innerHTML = `<span>${addonRegistry[id].name}</span>
                              <input type="checkbox" id="check-${id}" ${activeAddons[id] ? 'checked' : ''} onchange="toggleAddon('${id}')">`;
@@ -146,12 +151,20 @@
         });
     }
 
+    function disableAllAddons() {
+        if(confirm("Are you sure you want to disable syntax highlighting for ALL addons?")) {
+            activeAddons = {};
+            localStorage.setItem('skMegaAddons', JSON.stringify(activeAddons));
+            renderAddonList();
+            updateEditor();
+        }
+    }
+
     function filterAddons() {
         const query = document.getElementById('addon-search').value.toLowerCase();
         const items = document.querySelectorAll('.addon-toggle');
         items.forEach(item => {
-            const name = item.getAttribute('data-name');
-            item.style.display = name.includes(query) ? 'flex' : 'none';
+            item.style.display = item.getAttribute('data-name').includes(query) ? 'flex' : 'none';
         });
     }
 
