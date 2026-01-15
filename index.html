@@ -41,33 +41,41 @@
 
         /* Modal Settings */
         #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; }
-        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 400px; color: white; border: 1px solid var(--purple); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .addon-list { max-height: 400px; overflow-y: auto; margin: 15px 0; padding-right: 10px; }
-        .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; padding: 6px; border-radius: 4px; transition: 0.2s; border-bottom: 1px solid #333; }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 450px; color: white; border: 1px solid var(--purple); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        
+        /* Search Box */
+        .search-container { margin-bottom: 15px; position: relative; }
+        #addon-search { width: 100%; padding: 10px 12px; background: #191a21; border: 1px solid #444; border-radius: 6px; color: white; box-sizing: border-box; outline: none; transition: border-color 0.2s; }
+        #addon-search:focus { border-color: var(--purple); }
+
+        .addon-list { max-height: 350px; overflow-y: auto; margin: 10px 0; padding-right: 10px; }
+        .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 13px; padding: 8px; border-radius: 4px; transition: 0.2s; background: rgba(255,255,255,0.03); }
         .addon-toggle:hover { background: var(--selection); }
-        .addon-toggle input { cursor: pointer; accent-color: var(--purple); width: 18px; height: 18px; }
+        .addon-toggle input { cursor: pointer; accent-color: var(--purple); width: 16px; height: 16px; }
 
         /* Highlighting Styles */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
-        .sk-addon { color: #bd93f9; font-weight: 500; border-bottom: 1px dotted #bd93f933; }
+        .sk-addon { color: #bd93f9; font-weight: 500; }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: #f1fa8c; }
-        .mc-color { font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="modal-overlay">
     <div id="modal">
-        <h2 style="margin-top:0; color:var(--purple)">Mega Addon Support</h2>
-        <p style="font-size:12px; color:var(--comment)">Enable/Disable syntax highlighting for 100+ plugins:</p>
+        <h2 style="margin-top:0; color:var(--purple); font-size: 1.2rem;">Addon Manager</h2>
+        
+        <div class="search-container">
+            <input type="text" id="addon-search" placeholder="Search 100+ addons..." onkeyup="filterAddons()">
+        </div>
         
         <div class="addon-list" id="addon-list-container">
             </div>
         
-        <button onclick="closeSettings()" style="width:100%; margin-top:10px; padding:12px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:6px; font-weight:bold;">Apply & Save</button>
+        <button onclick="closeSettings()" style="width:100%; margin-top:10px; padding:12px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:6px; font-weight:bold;">Save & Close</button>
     </div>
 </div>
 
@@ -75,13 +83,13 @@
     <div class="sidebar">
         <div class="sidebar-header">SCRIPTS</div>
         <div id="file-list" class="file-list">
-            <div class="file-item active">mega_demo.sk</div>
+            <div class="file-item active">main.sk</div>
         </div>
     </div>
     <div class="main">
         <div class="toolbar">
-            <span>mega_demo.sk</span>
-            <span style="cursor:pointer; background: var(--selection); padding: 4px 8px; border-radius: 4px;" onclick="openSettings()">⚙️ Addons & Settings</span>
+            <span>main.sk</span>
+            <span style="cursor:pointer; background: var(--selection); padding: 4px 10px; border-radius: 4px; font-weight: bold;" onclick="openSettings()">⚙️ Manage Addons</span>
         </div>
         <div class="editor-container">
             <div id="gutter">1</div>
@@ -98,48 +106,60 @@
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
 
-    // 1. COMPLEX DEFINITIONS (Manual patterns for best accuracy)
+    // Registry Setup
     const addonRegistry = {
-        'skript-reflect': { name: 'Skript-Reflect', keywords: 'import|reflect|java (object|class|method|field)|constructor|proxy|as (a|the) (java|boolean)|return|event-field|field %string% of|run section' },
-        'skbee': { name: 'SkBee', keywords: 'nbt (compound|list|tag)|recipe|scoreboard tag|tag of|components|element' },
-        'skript-yaml': { name: 'Skript-Yaml', keywords: 'yaml (value|node|list|directory)|load yaml|save yaml|unload yaml|delete yml' },
-        'skcord': { name: 'skCord', keywords: 'discord [bot]|webhook|embed|channel|guild|user|token|new author|new footer|field named' },
-        'skript-gui': { name: 'Skript-GUI', keywords: 'create [a] gui|make gui slot|open last gui|unstealable|run (when|on) (click|close|drag)' },
-        'skquery': { name: 'SkQuery', keywords: 'json|midi|firework|mysql|query|pop (ball|large|star)|csv|lambda|evaluate' }
+        'skript-reflect': { name: 'Skript-Reflect', keywords: 'import|reflect|java (object|class|method|field)|constructor|proxy' },
+        'skbee': { name: 'SkBee', keywords: 'nbt (compound|list|tag)|recipe|scoreboard tag|tag of' },
+        'skript-yaml': { name: 'Skript-Yaml', keywords: 'yaml (value|node|list)|load yaml|save yaml' },
+        'skcord': { name: 'skCord', keywords: 'discord|webhook|embed|token' },
+        'skript-gui': { name: 'Skript-GUI', keywords: 'create [a] gui|make gui slot|open last gui' },
+        'skquery': { name: 'SkQuery', keywords: 'json|midi|firework|mysql|query' }
     };
 
-    // 2. BULK LIST (Automated Loader)
     const rawList = ["Skript", "PoaSK", "SkNMS", "skript-pk", "skRayFall", "Skript-Particle", "Lusk", "skLib", "Khoryl", "Skonic", "MundoSK", "skript-nexo", "skript-itemsadder", "TuSKe", "SkJade", "skript-placeholders", "skUtilities", "Skcrew", "Skirt", "FancySK", "skript-advancements", "skript-worldedit", "SkHttp", "MiSK", "Skream", "skript-packet", "DisplayEntityUtils", "skript-scoreboards", "SkCheez", "MorkazSk", "SkCheese", "skJson", "skript-holo", "Ersatz", "skript-bossbar", "NoteSK", "Skematic", "PermSk", "PriSKm", "SkEssentials (Legacy)", "Skelocity", "Skript-Citizens", "skript-npc", "SkScoreboard", "BungeeSK", "Kosmos", "Parties", "Skacket", "skDragon", "skript-teams", "ThatPacketAddon", "Conquer", "GameAPI", "Hippo", "skript-db", "Sky", "Biosphere2", "LabySK", "Linky", "Skent", "SkImage", "SKPermissionsEx", "SkriptPDC", "SkUniversal", "SkVault", "HolographicDisplaysAddon", "PlayerMention", "SkGrpc", "skript-oraxen", "skript-storage", "BoringSK", "Fawesk", "JobsSK", "Plosk", "SkCloudnet", "skGlow", "Skitch", "SkLogs", "SkMore", "Skript-Towny", "Skungee", "SkUtils", "Diskuise", "McQQBot", "MongoSK", "Pesk", "PotatoSK", "SkBriggy", "SkEmail", "SkEssentials", "SkRedis", "SkriptWebAPI", "SKull", "ZulfBungee", "Animated-Skript", "BeastTokenSk", "BungeeMaster", "EventCore", "FunkySk", "LiteBansSk", "oopsk", "Reqn", "RotateSk", "SetTickRateAddon", "SkAnimation", "SkArclight", "SkCoAPI", "SkDisaster", "SkDynmap", "Skelegram", "Skester", "SkFilter", "skGoat", "skGull", "SkMail", "SkMaps", "SkMaze", "SkNebula", "SKNoise", "Skore", "skProfession", "SkProtobuf", "SkProxy", "Skraper", "Skript-AnvilGUI", "Skript-GPT", "skript-json", "skript-logs", "skript-math", "Skript-Merchants", "skript-mirror", "skript-ping", "skript-simple-voice-chat", "Skript-Translate", "skript-votifier-hook", "SkriptLanguage (Addon)", "Skriptor", "skScraft", "SkVelo", "skWhitelist", "SlimeLink", "Tablisknu", "Ticker", "TranSKator", "WebSKT", "Wildfuskator", "xiaojie-gui", "WolfSk2_"];
 
-    // Initialize registry with bulk list
     rawList.forEach(name => {
         const id = name.toLowerCase().replace(/[^a-z0-9]/g, '');
         if (!addonRegistry[id]) {
-            addonRegistry[id] = { 
-                name: name, 
-                keywords: name.toLowerCase().split('-')[0] // Default keyword is start of name
-            };
+            addonRegistry[id] = { name: name, keywords: name.toLowerCase().split('-')[0] };
         }
     });
 
-    let activeAddons = JSON.parse(localStorage.getItem('skMegaAddons')) || { 'skbee': true, 'skriptreflect': true, 'skquery': true };
+    let activeAddons = JSON.parse(localStorage.getItem('skMegaAddons')) || { 'skbee': true, 'skriptreflect': true };
 
     function init() {
+        renderAddonList();
+        elInput.value = "# Search for addons in settings!\non join:\n\tset nbt of player to {Search:true}\n\tbroadcast \"Check the settings menu!\"";
+        updateEditor();
+    }
+
+    function renderAddonList() {
         const container = document.getElementById('addon-list-container');
-        // Sort keys alphabetically for the UI
+        container.innerHTML = '';
         Object.keys(addonRegistry).sort().forEach(id => {
             const div = document.createElement('div');
             div.className = 'addon-toggle';
+            div.setAttribute('data-name', addonRegistry[id].name.toLowerCase());
             div.innerHTML = `<span>${addonRegistry[id].name}</span>
                              <input type="checkbox" id="check-${id}" ${activeAddons[id] ? 'checked' : ''} onchange="toggleAddon('${id}')">`;
             container.appendChild(div);
         });
-        
-        elInput.value = "# Mega Addon Support Demo\nimport:\n\tjava.util.UUID\n\non join:\n\tset {_nbt} to nbt compound from \"{Test:1}\"\n\tload yaml \"config.yml\"\n\tcreate a gui with id \"main\":\n\t\tmake gui slot 0 with diamond\n\topen last gui to player\n\tbroadcast \"Welcome to Skript IDE!\"";
-        updateEditor();
     }
 
-    function openSettings() { document.getElementById('modal-overlay').style.display = 'block'; }
+    function filterAddons() {
+        const query = document.getElementById('addon-search').value.toLowerCase();
+        const items = document.querySelectorAll('.addon-toggle');
+        items.forEach(item => {
+            const name = item.getAttribute('data-name');
+            item.style.display = name.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    function openSettings() { 
+        document.getElementById('modal-overlay').style.display = 'block'; 
+        document.getElementById('addon-search').focus();
+    }
+    
     function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
     
     function toggleAddon(id) {
@@ -160,11 +180,8 @@
         elGutter.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
 
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-
-        // 1. Strings
         h = h.replace(/"([^"]*)"/g, `<span class="sk-string">"$1"</span>`);
 
-        // 2. Addon Keywords (Dynamic)
         for (let id in addonRegistry) {
             if (activeAddons[id]) {
                 const regex = new RegExp(`\\b(${addonRegistry[id].keywords})\\b`, 'gi');
@@ -172,7 +189,6 @@
             }
         }
 
-        // 3. Base Skript Syntax
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
         h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|message|if|else|loop|while|return|import|options|command)\b/g, '<span class="sk-effect">$1</span>');
         h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
