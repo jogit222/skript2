@@ -1,0 +1,20 @@
+<div id="ide-container">
+    <div class="toolbar">
+        <button onclick="toggleSettings()">⚙️ Settings</button>
+        <span class="title">Skript-IDE Pro</span>
+    </div>
+    
+    <div class="editor-wrapper">
+        <div id="line-numbers">1</div>
+        <pre id="highlight-area" aria-hidden="true"></pre>
+        <textarea id="editing-area" spellcheck="false" oninput="updateEditor()"></textarea>
+    </div>
+
+    <div id="settings-modal" class="hidden">
+        <h3>Editor Settings</h3>
+        <label><input type="checkbox" id="set-highlight" checked onchange="updateEditor()"> Enable Syntax Highlighting</label><br>
+        <label><input type="checkbox" id="set-linenumbers" checked onchange="toggleLineNumbers()"> Show Line Numbers</label><br>
+        <label><input type="checkbox" id="set-darkmode" checked onchange="toggleTheme()"> Dark Mode</label>
+        <button onclick="toggleSettings()">Close</button>
+    </div>
+</div>
