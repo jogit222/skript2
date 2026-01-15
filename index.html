@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Skript IDE Pro - Enhanced</title>
+    <title>Skript IDE Pro - Addon Support</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -11,83 +11,85 @@
         }
         body, html { 
             margin: 0; padding: 0; height: 100%; 
-            background: #191a21; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden;
+            background: #191a21; font-family: 'Segoe UI', sans-serif; overflow: hidden;
         }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar & File Manager */
-        .sidebar { width: 160px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #444; }
-        .sidebar-header { padding: 10px; font-size: 12px; color: var(--purple); font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
+        /* Sidebar */
+        .sidebar { width: 180px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #444; }
+        .sidebar-header { padding: 15px; font-size: 12px; color: var(--purple); font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
         .file-list { flex: 1; overflow-y: auto; }
-        .file-item { 
-            padding: 8px 12px; font-size: 13px; color: var(--fg); cursor: pointer; 
-            display: flex; justify-content: space-between; transition: 0.2s;
-        }
-        .file-item:hover { background: var(--selection); }
+        .file-item { padding: 8px 15px; font-size: 13px; color: var(--fg); cursor: pointer; display: flex; justify-content: space-between; }
         .file-item.active { background: var(--selection); border-left: 3px solid var(--purple); }
-        .delete-btn { color: var(--comment); opacity: 0; }
-        .file-item:hover .delete-btn { opacity: 1; }
-        .add-file { background: var(--purple); border: none; color: white; padding: 5px; cursor: pointer; font-size: 10px; border-radius: 3px; }
-
-        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-        .toolbar { height: 35px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; font-size: 12px; color: var(--comment); border-bottom: 1px solid #444; }
         
-        /* The Editor */
+        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+        .toolbar { height: 35px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; font-size: 12px; color: var(--comment); border-bottom: 1px solid #444; justify-content: space-between; }
+        
+        /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; }
-        #gutter { width: 40px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: monospace; font-size: 14px; line-height: 1.5; user-select: none; border-right: 1px solid #333; }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: monospace; font-size: 14px; line-height: 1.5; user-select: none; }
         .input-area { flex: 1; position: relative; overflow: hidden; }
         
         #editing, #highlighting {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            margin: 0; padding: 10px; border: 0; font-family: 'Fira Code', monospace;
+            margin: 0; padding: 10px; border: 0; font-family: 'Consolas', monospace;
             font-size: 14px; line-height: 1.5; tab-size: 4; white-space: pre;
             box-sizing: border-box; overflow: auto;
         }
         #editing { z-index: 2; background: transparent; color: transparent; caret-color: white; outline: none; resize: none; }
         #highlighting { z-index: 1; color: var(--fg); pointer-events: none; }
-        
-        /* Autocomplete Box */
-        #autocomplete {
-            position: absolute; display: none; background: var(--sidebar);
-            border: 1px solid var(--purple); z-index: 1000; min-width: 150px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); border-radius: 4px;
-        }
-        .suggestion { padding: 5px 10px; color: var(--fg); cursor: pointer; font-size: 13px; }
-        .suggestion.selected { background: var(--purple); color: white; }
 
-        /* Syntax Highlighting Classes */
+        /* Modal Settings */
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 8px; width: 300px; color: white; border: 1px solid var(--purple); }
+        .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
+
+        /* Highlighting Styles */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
+        .sk-addon { color: #bd93f9; text-decoration: underline; text-decoration-color: #444; }
         .sk-var { color: var(--orange); }
-        .sk-comment { color: var(--comment); font-style: italic; }
+        .sk-comment { color: var(--comment); }
         .sk-string { color: #f1fa8c; }
-        
-        /* Minecraft Color Formatting */
-        .mc-a { color: #55FF55; } .mc-b { color: #55FFFF; } .mc-c { color: #FF5555; }
-        .mc-d { color: #FF55FF; } .mc-e { color: #FFFF55; } .mc-f { color: #FFFFFF; }
-        .mc-0 { color: #000000; } .mc-1 { color: #0000AA; } .mc-2 { color: #00AA00; }
-        .mc-3 { color: #00AAAA; } .mc-4 { color: #AA0000; } .mc-5 { color: #AA00AA; }
-        .mc-6 { color: #FFAA00; } .mc-7 { color: #AAAAAA; } .mc-8 { color: #555555; }
-        .mc-9 { color: #5555FF; }
+        .mc-a { color: #55FF55; } .mc-c { color: #FF5555; }
     </style>
 </head>
 <body>
 
+<div id="modal-overlay">
+    <div id="modal">
+        <h2 style="margin-top:0; color:var(--purple)">Editor Settings</h2>
+        <p style="font-size:12px; color:var(--comment)">Toggle syntax support for addons:</p>
+        <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
+        
+        <div class="addon-toggle">
+            <span>skript-gui</span>
+            <input type="checkbox" id="addon-gui" onchange="toggleAddon('gui')">
+        </div>
+        <div class="addon-toggle">
+            <span>Skellett</span>
+            <input type="checkbox" id="addon-skellett" onchange="toggleAddon('skellett')">
+        </div>
+        
+        <button onclick="closeSettings()" style="width:100%; margin-top:20px; padding:8px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:4px;">Save & Close</button>
+    </div>
+</div>
+
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-header">
-            FILES <button class="add-file" onclick="createNewFile()">+ NEW</button>
-        </div>
+        <div class="sidebar-header">FILES</div>
         <div id="file-list" class="file-list"></div>
     </div>
     <div class="main">
-        <div class="toolbar"><span id="current-filename">script.sk</span></div>
+        <div class="toolbar">
+            <span id="current-filename">main.sk</span>
+            <span style="cursor:pointer" onclick="openSettings()">⚙️ Settings</span>
+        </div>
         <div class="editor-container">
             <div id="gutter">1</div>
             <div class="input-area">
-                <div id="autocomplete"></div>
                 <pre id="highlighting"></pre>
-                <textarea id="editing" spellcheck="false" oninput="handleInput()" onscroll="syncScroll()" onkeydown="handleKeys(event)"></textarea>
+                <textarea id="editing" spellcheck="false" oninput="updateEditor()" onscroll="syncScroll()"></textarea>
             </div>
         </div>
     </div>
@@ -97,57 +99,24 @@
     const elInput = document.getElementById('editing');
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
-    const elFiles = document.getElementById('file-list');
-    const elAuto = document.getElementById('autocomplete');
 
-    let files = JSON.parse(localStorage.getItem('skFiles')) || { 'main.sk': 'on join:\n\tsend "&aWelcome!"\n\tset {joins.%player%} to 1' };
-    let currentFile = Object.keys(files)[0];
-    let suggestions = ["send", "broadcast", "player", "cancel event", "message", "give", "set", "add", "remove", "wait", "if", "else", "stop", "on join:", "on quit:", "on death:"];
-    let selectedSuggestIndex = 0;
+    // State
+    let activeAddons = JSON.parse(localStorage.getItem('skAddons')) || { gui: true, skellett: false };
+    let files = { 'main.sk': 'on join:\n\tcreate a gui with id "main":\n\t\tmake gui slot 0 with diamond named "&aShiny":\n\t\t\tsend "Clicked!"\n\topen last gui to player' };
 
-    // --- File Manager ---
-    function renderFileList() {
-        elFiles.innerHTML = '';
-        for (let name in files) {
-            const div = document.createElement('div');
-            div.className = `file-item ${name === currentFile ? 'active' : ''}`;
-            div.innerHTML = `<span>${name}</span><span class="delete-btn" onclick="deleteFile(event, '${name}')">×</span>`;
-            div.onclick = () => switchFile(name);
-            elFiles.appendChild(div);
-        }
-        localStorage.setItem('skFiles', JSON.stringify(files));
-    }
+    // Set checkboxes on load
+    document.getElementById('addon-gui').checked = activeAddons.gui;
+    document.getElementById('addon-skellett').checked = activeAddons.skellett;
 
-    function createNewFile() {
-        const name = prompt("File name (e.g. kit.sk):");
-        if (name && !files[name]) {
-            files[name] = "# New Script";
-            currentFile = name;
-            renderFileList();
-            switchFile(name);
-        }
-    }
-
-    function deleteFile(e, name) {
-        e.stopPropagation();
-        if (Object.keys(files).length > 1) {
-            delete files[name];
-            if (currentFile === name) currentFile = Object.keys(files)[0];
-            renderFileList();
-            switchFile(currentFile);
-        }
-    }
-
-    function switchFile(name) {
-        files[currentFile] = elInput.value; // Save current
-        currentFile = name;
-        elInput.value = files[name];
-        document.getElementById('current-filename').innerText = name;
-        renderFileList();
+    function openSettings() { document.getElementById('modal-overlay').style.display = 'block'; }
+    function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
+    
+    function toggleAddon(addon) {
+        activeAddons[addon] = document.getElementById(`addon-${addon}`).checked;
+        localStorage.setItem('skAddons', JSON.stringify(activeAddons));
         updateEditor();
     }
 
-    // --- Core Editor Functions ---
     function syncScroll() {
         elOutput.scrollTop = elInput.scrollTop;
         elOutput.scrollLeft = elInput.scrollLeft;
@@ -155,99 +124,52 @@
     }
 
     function updateEditor() {
-        const code = elInput.value;
+        let code = elInput.value;
         const lines = code.split('\n').length;
         elGutter.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
 
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
-        // 1. Strings with Color Formatting
+        // 1. Strings & MC Colors
         h = h.replace(/"([^"]*)"/g, (match, content) => {
-            // Internal Minecraft Color Coding
             let formatted = content.replace(/&amp;([0-9a-f])/g, '<span class="mc-$1">&amp;$1</span><span class="mc-$1">') + '</span>';
             return `<span class="sk-string">"${formatted}"</span>`;
         });
 
-        // 2. Comments
-        h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
-        // 3. Events
+        // 2. Addon-Specific Syntax (The Toggle Logic)
+        if (activeAddons.gui) {
+            // Highlights: create a gui, make gui slot, open last gui
+            h = h.replace(/\b(create a gui|make gui slot|open last gui|inventory (rows|name)|unstealable|with id)\b/g, '<span class="sk-addon">$1</span>');
+        }
+        
+        if (activeAddons.skellett) {
+            h = h.replace(/\b(mysql|block at|citizen|tab list)\b/g, '<span class="sk-addon">$1</span>');
+        }
+
+        // 3. Base Skript Syntax
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        // 4. Effects
-        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|message|wait|stop)\b/g, '<span class="sk-effect">$1</span>');
-        // 5. Variables
+        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|message)\b/g, '<span class="sk-effect">$1</span>');
         h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
+        h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
 
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
-        files[currentFile] = code;
-        localStorage.setItem('skFiles', JSON.stringify(files));
     }
 
-    // --- Autocomplete Logic ---
-    function handleInput() {
-        updateEditor();
-        const val = elInput.value;
-        const cursor = elInput.selectionStart;
-        const lastWord = val.substring(0, cursor).split(/[\s\t\n]+/).pop();
-
-        if (lastWord.length > 1) {
-            const matches = suggestions.filter(s => s.startsWith(lastWord));
-            if (matches.length > 0) {
-                showAutocomplete(matches);
-                return;
-            }
-        }
-        elAuto.style.display = 'none';
-    }
-
-    function showAutocomplete(matches) {
-        elAuto.innerHTML = '';
-        matches.forEach((m, i) => {
-            const d = document.createElement('div');
-            d.className = `suggestion ${i === selectedSuggestIndex ? 'selected' : ''}`;
-            d.innerText = m;
-            d.onclick = () => applySuggestion(m);
-            elAuto.appendChild(d);
-        });
-        
-        // Simple positioning logic (bottom left of editor for simplicity)
-        elAuto.style.display = 'block';
-        elAuto.style.left = '50px';
-        elAuto.style.bottom = '50px'; 
-    }
-
-    function applySuggestion(word) {
-        const val = elInput.value;
-        const cursor = elInput.selectionStart;
-        const parts = val.substring(0, cursor).split(/([\s\t\n]+)/);
-        parts[parts.length - 1] = word;
-        elInput.value = parts.join('') + val.substring(cursor);
-        elAuto.style.display = 'none';
-        updateEditor();
-    }
-
-    function handleKeys(e) {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            if (elAuto.style.display === 'block') {
-                const selected = elAuto.children[selectedSuggestIndex];
-                applySuggestion(selected.innerText);
-            } else {
-                const s = elInput.selectionStart;
-                elInput.value = elInput.value.substring(0, s) + "\t" + elInput.value.substring(elInput.selectionEnd);
-                elInput.selectionEnd = s + 1;
-                updateEditor();
-            }
-        }
-        if (e.key === 'ArrowDown' && elAuto.style.display === 'block') {
-            e.preventDefault();
-            selectedSuggestIndex = (selectedSuggestIndex + 1) % elAuto.children.length;
-            handleInput();
-        }
-    }
-
-    // Initialize
+    // Init
+    elInput.value = files['main.sk'];
     renderFileList();
-    switchFile(currentFile);
+    updateEditor();
+
+    function renderFileList() {
+        const list = document.getElementById('file-list');
+        list.innerHTML = '';
+        for(let f in files) {
+            const div = document.createElement('div');
+            div.className = 'file-item active';
+            div.innerText = f;
+            list.appendChild(div);
+        }
+    }
 </script>
 
 </body>
