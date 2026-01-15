@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro</title>
+    <title>Skript IDE Pro - Integrated</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -24,7 +24,6 @@
         .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
 
-        /* --- THE BUG FIX --- */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; background: var(--bg); }
         
         #gutter { 
@@ -33,18 +32,15 @@
             color: var(--comment); 
             padding: 15px 5px; 
             text-align: right; 
-            font-family: 'Fira Code', monospace; 
+            font-family: 'Consolas', 'Monaco', monospace; 
             border-right: 1px solid rgba(255,255,255,0.1); 
             user-select: none;
             z-index: 5;
             flex-shrink: 0;
-        }
-
-        .input-area {
-            flex: 1;
-            position: relative;
             overflow: hidden;
         }
+
+        .input-area { flex: 1; position: relative; overflow: hidden; }
 
         #editing, #highlighting { 
             position: absolute; 
@@ -53,9 +49,9 @@
             width: 100%; 
             height: 100%; 
             margin: 0; 
-            padding: 15px; /* Unified padding */
+            padding: 15px; 
             border: 0; 
-            font-family: 'Fira Code', monospace; 
+            font-family: 'Consolas', 'Monaco', monospace; 
             line-height: 1.6; 
             tab-size: 4; 
             white-space: pre; 
@@ -66,18 +62,17 @@
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Modal Styles */
         #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; }
-        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); }
-        .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 20px; }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 30px; border-radius: 12px; width: 400px; border: 1px solid var(--purple); }
+        .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 20px; box-sizing: border-box;}
 
         /* Syntax Colors */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
-        .sk-addon { color: var(--purple); font-weight: bold; }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: var(--green); }
+        .sk-bracket { color: var(--purple); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -99,9 +94,11 @@
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-brand">Skript IDE</div>
+        <div class="sidebar-brand">Skript IDE Pro</div>
         <div style="flex: 1; padding: 20px;">
             <div style="background: var(--selection); padding: 10px; border-radius: 6px; font-size: 13px;">📄 main.sk</div>
+            <div style="margin-top:20px; font-size: 10px; color: var(--comment); text-transform: uppercase; letter-spacing: 1px;">Shortcuts</div>
+            <p style="font-size: 11px; color: var(--fg); opacity: 0.7;">Tab: Autocomplete<br>Brackets: Auto-pair</p>
         </div>
         <div style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); display:flex; flex-direction:column; gap:10px;">
             <button class="tool-btn" onclick="copyToClipboard()">📋 COPY CODE</button>
@@ -129,10 +126,18 @@
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
 
-    let state = JSON.parse(localStorage.getItem('sk_ide_fixed')) || {
+    // Autocomplete list including Addons
+    const dictionary = [
+        "on join:", "on quit:", "on break:", "on place:", "on death:", "on damage:", "on chat:", "on command:",
+        "command", "trigger:", "permission:", "executable by:", "arguments:", "description:", "usage:",
+        "send", "broadcast", "set", "add", "remove", "give", "cancel event", "stop", "wait", "loop", "if", "else", 
+        "open virtual chest", "format slot", "create a gui", "display hologram", "metadata tag", "mysql query", "player"
+    ];
+
+    let state = JSON.parse(localStorage.getItem('sk_ide_v2')) || {
         theme: 'dracula',
         fontSize: 14,
-        code: ""
+        code: "on join:\n\tsend \"Welcome to the server!\"\n\tset {player.joined} to true"
     };
 
     function init() {
@@ -144,36 +149,81 @@
         updateEditor();
     }
 
+    // Advanced Keyboard Handling (Autocomplete + Brackets)
+    elInput.addEventListener('keydown', function(e) {
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+        const val = this.value;
+
+        // 1. Bracket/Quote Matching
+        const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'" };
+        if (pairs[e.key]) {
+            e.preventDefault();
+            this.value = val.substring(0, start) + e.key + pairs[e.key] + val.substring(end);
+            this.selectionStart = this.selectionEnd = start + 1;
+            handleInput();
+        }
+
+        // 2. Tab Autocomplete Logic
+        if (e.key === 'Tab') {
+            const beforeCursor = val.substring(0, start);
+            const words = beforeCursor.split(/[\s\n\t]+/);
+            const lastWord = words[words.length - 1];
+
+            if (lastWord.length > 1) {
+                const match = dictionary.find(w => w.startsWith(lastWord.toLowerCase()));
+                if (match) {
+                    e.preventDefault();
+                    const wordStart = start - lastWord.length;
+                    this.value = val.substring(0, wordStart) + match + val.substring(end);
+                    this.selectionStart = this.selectionEnd = wordStart + match.length;
+                    handleInput();
+                }
+            } else {
+                // Regular tab behavior if no word
+                e.preventDefault();
+                this.value = val.substring(0, start) + "\t" + val.substring(end);
+                this.selectionStart = this.selectionEnd = start + 1;
+                handleInput();
+            }
+        }
+    });
+
     function handleInput() {
         state.code = elInput.value;
         updateEditor();
-        localStorage.setItem('sk_ide_fixed', JSON.stringify(state));
-    }
-
-    function changeTheme() {
-        state.theme = document.getElementById('theme-select').value;
-        document.body.className = state.theme === 'dracula' ? '' : 'theme-' + state.theme;
-        localStorage.setItem('sk_ide_fixed', JSON.stringify(state));
-    }
-
-    function changeFontSize() {
-        state.fontSize = document.getElementById('font-size').value;
-        const size = state.fontSize + 'px';
-        elInput.style.fontSize = size;
-        elOutput.style.fontSize = size;
-        elGutter.style.fontSize = size;
-        localStorage.setItem('sk_ide_fixed', JSON.stringify(state));
+        localStorage.setItem('sk_ide_v2', JSON.stringify(state));
     }
 
     function updateEditor() {
         let code = elInput.value;
-        elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
+
+        // Update Gutter
+        const lineCount = code.split('\n').length;
+        elGutter.innerHTML = Array.from({length: lineCount}, (_, i) => i + 1).join('<br>');
+
+        // Highlight Logic
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        
+        // Brackets
+        h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
+        
+        // Strings
         h = h.replace(/"([^"]*)"/g, `<span class="sk-string">"$1"</span>`);
+        
+        // Events (Lines ending in colon)
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|if|else|loop|command|trigger)\b/g, '<span class="sk-effect">$1</span>');
+        
+        // Effects & Control Flow
+        const effects = /\b(send|broadcast|give|set|add|remove|cancel event|stop|wait|if|else|loop|command|trigger|permission|arguments|usage)\b/g;
+        h = h.replace(effects, '<span class="sk-effect">$1</span>');
+        
+        // Variables
         h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
+        
+        // Comments
         h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
+
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
     }
 
@@ -183,13 +233,28 @@
         elGutter.scrollTop = elInput.scrollTop; 
     }
 
+    function changeTheme() {
+        state.theme = document.getElementById('theme-select').value;
+        document.body.className = state.theme === 'dracula' ? '' : 'theme-' + state.theme;
+        localStorage.setItem('sk_ide_v2', JSON.stringify(state));
+    }
+
+    function changeFontSize() {
+        state.fontSize = document.getElementById('font-size').value;
+        const size = state.fontSize + 'px';
+        elInput.style.fontSize = size;
+        elOutput.style.fontSize = size;
+        elGutter.style.fontSize = size;
+        localStorage.setItem('sk_ide_v2', JSON.stringify(state));
+    }
+
     function copyToClipboard() {
         navigator.clipboard.writeText(elInput.value);
-        alert("Copied to clipboard!");
+        alert("Code copied!");
     }
 
     function clearEditor() {
-        if(confirm("Clear all code?")) {
+        if(confirm("Delete everything?")) {
             elInput.value = "";
             handleInput();
         }
