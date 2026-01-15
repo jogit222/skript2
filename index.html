@@ -1,45 +1,106 @@
-<div class="ide-frame">
-    <aside class="sidebar">
-        <div class="icon active" title="Editor">📝</div>
-        <div class="icon" title="Files">📁</div>
-        <div class="icon" onclick="toggleSettings()" title="Settings">⚙️</div>
-    </aside>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skript IDE Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CSS RESET & VARIABLES --- */
+        :root {
+            --bg-dark: #282a36;
+            --bg-darker: #21222c;
+            --fg: #f8f8f2;
+            --comment: #6272a4;
+            --cyan: #8be9fd;
+            --green: #50fa7b;
+            --orange: #ffb86c;
+            --pink: #ff79c6;
+            --purple: #bd93f9;
+            --red: #ff5555;
+            --yellow: #f1fa8c;
+            --selection: #44475a;
+            --gutter-bg: #21222c;
+            --border: #44475a;
+        }
 
-    <main class="editor-container">
-        <header class="status-bar">
-            <span class="file-name">main.sk</span>
-            <span id="cursor-pos">Ln 1, Col 1</span>
-        </header>
+        * { box-sizing: border-box; }
 
-        <div class="code-viewport">
-            <div id="line-gutter">1</div>
-            <div class="textarea-wrapper">
-                <pre id="highlight-layer" aria-hidden="true"></pre>
-                <textarea id="main-editor" 
-                    spellcheck="false" 
-                    oninput="ide.process()" 
-                    onscroll="ide.syncScroll()"></textarea>
-            </div>
-        </div>
-    </main>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #191a21;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--fg);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-    <div id="settings-panel" class="modal hidden">
-        <div class="modal-content">
-            <h2>IDE Preferences</h2>
-            <hr>
-            <div class="setting-item">
-                <label>Syntax Highlighting</label>
-                <input type="checkbox" id="pref-syntax" checked onchange="ide.toggleFeature('syntax')">
-            </div>
-            <div class="setting-item">
-                <label>Auto-Indentation</label>
-                <input type="checkbox" id="pref-indent" checked onchange="ide.toggleFeature('indent')">
-            </div>
-            <div class="setting-item">
-                <label>Dark Mode</label>
-                <input type="checkbox" id="pref-dark" checked onchange="ide.toggleTheme()">
-            </div>
-            <button class="btn-close" onclick="toggleSettings()">Save & Close</button>
-        </div>
-    </div>
-</div>
+        /* --- LAYOUT --- */
+        .ide-container {
+            width: 95vw;
+            height: 90vh;
+            background-color: var(--bg-dark);
+            border-radius: 8px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            display: flex;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 50px;
+            background-color: var(--bg-darker);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 15px;
+            z-index: 10;
+        }
+
+        .icon-btn {
+            width: 30px;
+            height: 30px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: 0.2s;
+            user-select: none;
+        }
+        .icon-btn:hover { background-color: var(--selection); }
+        .icon-btn.active { background-color: var(--purple); color: #fff; }
+
+        /* Main Editor Area */
+        .main-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 30px;
+            background-color: var(--bg-darker);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            font-size: 12px;
+            color: var(--comment);
+        }
+
+        /* Editor Wrapper */
+        .editor-wrapper {
+            flex
