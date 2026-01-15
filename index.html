@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Skript IDE Pro - Addon Support</title>
+    <title>Skript IDE Pro - Mega Support</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -17,22 +17,22 @@
         
         /* Sidebar */
         .sidebar { width: 180px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #444; }
-        .sidebar-header { padding: 15px; font-size: 12px; color: var(--purple); font-weight: bold; display: flex; justify-content: space-between; align-items: center;}
+        .sidebar-header { padding: 15px; font-size: 12px; color: var(--purple); font-weight: bold; }
         .file-list { flex: 1; overflow-y: auto; }
-        .file-item { padding: 8px 15px; font-size: 13px; color: var(--fg); cursor: pointer; display: flex; justify-content: space-between; }
-        .file-item.active { background: var(--selection); border-left: 3px solid var(--purple); }
+        .file-item { padding: 8px 15px; font-size: 13px; color: var(--fg); cursor: pointer; border-left: 3px solid transparent; }
+        .file-item.active { background: var(--selection); border-left-color: var(--purple); }
         
         .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .toolbar { height: 35px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; font-size: 12px; color: var(--comment); border-bottom: 1px solid #444; justify-content: space-between; }
         
         /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: monospace; font-size: 14px; line-height: 1.5; user-select: none; }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 10px 5px; text-align: right; font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; user-select: none; }
         .input-area { flex: 1; position: relative; overflow: hidden; }
         
         #editing, #highlighting {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            margin: 0; padding: 10px; border: 0; font-family: 'Consolas', monospace;
+            margin: 0; padding: 10px; border: 0; font-family: 'Fira Code', 'Consolas', monospace;
             font-size: 14px; line-height: 1.5; tab-size: 4; white-space: pre;
             box-sizing: border-box; overflow: auto;
         }
@@ -40,50 +40,48 @@
         #highlighting { z-index: 1; color: var(--fg); pointer-events: none; }
 
         /* Modal Settings */
-        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; }
-        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 8px; width: 300px; color: white; border: 1px solid var(--purple); }
-        .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
+        #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; }
+        #modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--sidebar); padding: 25px; border-radius: 12px; width: 350px; color: white; border: 1px solid var(--purple); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .addon-list { max-height: 300px; overflow-y: auto; margin: 15px 0; padding-right: 5px; }
+        .addon-toggle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; padding: 5px; border-radius: 4px; transition: 0.2s; }
+        .addon-toggle:hover { background: var(--selection); }
+        .addon-toggle input { cursor: pointer; accent-color: var(--purple); }
 
         /* Highlighting Styles */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
-        .sk-addon { color: #bd93f9; text-decoration: underline; text-decoration-color: #444; }
+        .sk-addon { color: #bd93f9; font-weight: 500; }
         .sk-var { color: var(--orange); }
-        .sk-comment { color: var(--comment); }
+        .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: #f1fa8c; }
-        .mc-a { color: #55FF55; } .mc-c { color: #FF5555; }
+        .mc-color { font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="modal-overlay">
     <div id="modal">
-        <h2 style="margin-top:0; color:var(--purple)">Editor Settings</h2>
-        <p style="font-size:12px; color:var(--comment)">Toggle syntax support for addons:</p>
-        <hr style="border:0; border-top:1px solid #444; margin:15px 0;">
+        <h2 style="margin-top:0; color:var(--purple)">Addon Support</h2>
+        <p style="font-size:12px; color:var(--comment)">Toggle syntax highlighting for your plugins:</p>
         
-        <div class="addon-toggle">
-            <span>skript-gui</span>
-            <input type="checkbox" id="addon-gui" onchange="toggleAddon('gui')">
-        </div>
-        <div class="addon-toggle">
-            <span>Skellett</span>
-            <input type="checkbox" id="addon-skellett" onchange="toggleAddon('skellett')">
-        </div>
+        <div class="addon-list" id="addon-list-container">
+            </div>
         
-        <button onclick="closeSettings()" style="width:100%; margin-top:20px; padding:8px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:4px;">Save & Close</button>
+        <button onclick="closeSettings()" style="width:100%; margin-top:10px; padding:10px; background:var(--purple); border:none; color:white; cursor:pointer; border-radius:6px; font-weight:bold;">Save Changes</button>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-header">FILES</div>
-        <div id="file-list" class="file-list"></div>
+        <div class="sidebar-header">SCRIPTS</div>
+        <div id="file-list" class="file-list">
+            <div class="file-item active">demo_addon.sk</div>
+        </div>
     </div>
     <div class="main">
         <div class="toolbar">
-            <span id="current-filename">main.sk</span>
-            <span style="cursor:pointer" onclick="openSettings()">⚙️ Settings</span>
+            <span>demo_addon.sk</span>
+            <span style="cursor:pointer" onclick="openSettings()">⚙️ Addons & Settings</span>
         </div>
         <div class="editor-container">
             <div id="gutter">1</div>
@@ -100,20 +98,42 @@
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
 
-    // State
-    let activeAddons = JSON.parse(localStorage.getItem('skAddons')) || { gui: true, skellett: false };
-    let files = { 'main.sk': 'on join:\n\tcreate a gui with id "main":\n\t\tmake gui slot 0 with diamond named "&aShiny":\n\t\t\tsend "Clicked!"\n\topen last gui to player' };
+    // Addon Definition Registry
+    const addonRegistry = {
+        'skbee': { name: 'SkBee', keywords: 'nbt (compound|list|tag)|recipe|scoreboard tag|tag of|components' },
+        'skperms': { name: 'SkPerms', keywords: 'permission|group of|rank|has permission|add permission' },
+        'skrayfall': { name: 'SkRayFall', keywords: 'hologram|sidebar|scoreboard line|objective|tablist' },
+        'sk-advancements': { name: 'Skript-Advancements', keywords: 'advancement|toast|display advancement|make advancement' },
+        'sk-bossbar': { name: 'Skript-BossBar', keywords: 'bossbar|bar color|bar style|display bossbar' },
+        'sk-itemsadder': { name: 'Skript-ItemsAdder', keywords: 'ia item|itemsadder|ia folder|custom stack|ia gui' },
+        'sk-scoreboards': { name: 'Skript-Scoreboards', keywords: 'new scoreboard|setup scoreboard|scoreboard title|scoreboard slot' },
+        'sk-utilities': { name: 'Sk-Utilities', keywords: 'yaml|file|folder|download|sound|play raw sound' },
+        'sk-gui': { name: 'Skript-GUI', keywords: 'create a gui|make gui slot|open last gui|unstealable' }
+    };
 
-    // Set checkboxes on load
-    document.getElementById('addon-gui').checked = activeAddons.gui;
-    document.getElementById('addon-skellett').checked = activeAddons.skellett;
+    let activeAddons = JSON.parse(localStorage.getItem('skAddons_v2')) || { 'skbee': true, 'sk-gui': true };
+
+    // Initialize UI
+    function init() {
+        const container = document.getElementById('addon-list-container');
+        for (let id in addonRegistry) {
+            const div = document.createElement('div');
+            div.className = 'addon-toggle';
+            div.innerHTML = `<span>${addonRegistry[id].name}</span>
+                             <input type="checkbox" id="check-${id}" ${activeAddons[id] ? 'checked' : ''} onchange="toggleAddon('${id}')">`;
+            container.appendChild(div);
+        }
+        
+        elInput.value = "# SkBee & ItemsAdder Demo\non join:\n\tset nbt of player to {test:1}\n\tgive ia item \"my_custom_sword\" to player\n\tcreate a gui with id \"test\":\n\t\tmake gui slot 0 with diamond\n\topen last gui to player";
+        updateEditor();
+    }
 
     function openSettings() { document.getElementById('modal-overlay').style.display = 'block'; }
     function closeSettings() { document.getElementById('modal-overlay').style.display = 'none'; }
     
-    function toggleAddon(addon) {
-        activeAddons[addon] = document.getElementById(`addon-${addon}`).checked;
-        localStorage.setItem('skAddons', JSON.stringify(activeAddons));
+    function toggleAddon(id) {
+        activeAddons[id] = document.getElementById(`check-${id}`).checked;
+        localStorage.setItem('skAddons_v2', JSON.stringify(activeAddons));
         updateEditor();
     }
 
@@ -132,44 +152,28 @@
 
         // 1. Strings & MC Colors
         h = h.replace(/"([^"]*)"/g, (match, content) => {
-            let formatted = content.replace(/&amp;([0-9a-f])/g, '<span class="mc-$1">&amp;$1</span><span class="mc-$1">') + '</span>';
-            return `<span class="sk-string">"${formatted}"</span>`;
+            let formatted = content.replace(/&amp;([0-9a-f])/g, '<span class="mc-color" style="color:var(--mc-$1)">$1</span>');
+            return `<span class="sk-string">"${content}"</span>`;
         });
 
-        // 2. Addon-Specific Syntax (The Toggle Logic)
-        if (activeAddons.gui) {
-            // Highlights: create a gui, make gui slot, open last gui
-            h = h.replace(/\b(create a gui|make gui slot|open last gui|inventory (rows|name)|unstealable|with id)\b/g, '<span class="sk-addon">$1</span>');
-        }
-        
-        if (activeAddons.skellett) {
-            h = h.replace(/\b(mysql|block at|citizen|tab list)\b/g, '<span class="sk-addon">$1</span>');
+        // 2. Addon Keywords (Dynamic from Registry)
+        for (let id in addonRegistry) {
+            if (activeAddons[id]) {
+                const regex = new RegExp(`\\b(${addonRegistry[id].keywords})\\b`, 'gi');
+                h = h.replace(regex, '<span class="sk-addon">$1</span>');
+            }
         }
 
         // 3. Base Skript Syntax
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|message)\b/g, '<span class="sk-effect">$1</span>');
+        h = h.replace(/\b(send|broadcast|give|set|add|cancel event|stop|wait|message|if|else|loop|while|return)\b/g, '<span class="sk-effect">$1</span>');
         h = h.replace(/\{([\w\.\%]+)\}/g, '<span class="sk-var">{$1}</span>');
         h = h.replace(/#.*/g, '<span class="sk-comment">$&</span>');
 
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
     }
 
-    // Init
-    elInput.value = files['main.sk'];
-    renderFileList();
-    updateEditor();
-
-    function renderFileList() {
-        const list = document.getElementById('file-list');
-        list.innerHTML = '';
-        for(let f in files) {
-            const div = document.createElement('div');
-            div.className = 'file-item active';
-            div.innerText = f;
-            list.appendChild(div);
-        }
-    }
+    init();
 </script>
 
 </body>
