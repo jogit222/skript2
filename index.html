@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Fixed Layout</title>
+    <title>Skript IDE Pro</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -132,7 +132,7 @@
     let state = JSON.parse(localStorage.getItem('sk_ide_fixed')) || {
         theme: 'dracula',
         fontSize: 14,
-        code: "on join:\n\tbroadcast \"&aLayout Fixed!\"\n\tset {session::%player%} to now"
+        code: ""
     };
 
     function init() {
