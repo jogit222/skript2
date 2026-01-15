@@ -1,20 +1,45 @@
-<div id="ide-container">
-    <div class="toolbar">
-        <button onclick="toggleSettings()">⚙️ Settings</button>
-        <span class="title">Skript-IDE Pro</span>
-    </div>
-    
-    <div class="editor-wrapper">
-        <div id="line-numbers">1</div>
-        <pre id="highlight-area" aria-hidden="true"></pre>
-        <textarea id="editing-area" spellcheck="false" oninput="updateEditor()"></textarea>
-    </div>
+<div class="ide-frame">
+    <aside class="sidebar">
+        <div class="icon active" title="Editor">📝</div>
+        <div class="icon" title="Files">📁</div>
+        <div class="icon" onclick="toggleSettings()" title="Settings">⚙️</div>
+    </aside>
 
-    <div id="settings-modal" class="hidden">
-        <h3>Editor Settings</h3>
-        <label><input type="checkbox" id="set-highlight" checked onchange="updateEditor()"> Enable Syntax Highlighting</label><br>
-        <label><input type="checkbox" id="set-linenumbers" checked onchange="toggleLineNumbers()"> Show Line Numbers</label><br>
-        <label><input type="checkbox" id="set-darkmode" checked onchange="toggleTheme()"> Dark Mode</label>
-        <button onclick="toggleSettings()">Close</button>
+    <main class="editor-container">
+        <header class="status-bar">
+            <span class="file-name">main.sk</span>
+            <span id="cursor-pos">Ln 1, Col 1</span>
+        </header>
+
+        <div class="code-viewport">
+            <div id="line-gutter">1</div>
+            <div class="textarea-wrapper">
+                <pre id="highlight-layer" aria-hidden="true"></pre>
+                <textarea id="main-editor" 
+                    spellcheck="false" 
+                    oninput="ide.process()" 
+                    onscroll="ide.syncScroll()"></textarea>
+            </div>
+        </div>
+    </main>
+
+    <div id="settings-panel" class="modal hidden">
+        <div class="modal-content">
+            <h2>IDE Preferences</h2>
+            <hr>
+            <div class="setting-item">
+                <label>Syntax Highlighting</label>
+                <input type="checkbox" id="pref-syntax" checked onchange="ide.toggleFeature('syntax')">
+            </div>
+            <div class="setting-item">
+                <label>Auto-Indentation</label>
+                <input type="checkbox" id="pref-indent" checked onchange="ide.toggleFeature('indent')">
+            </div>
+            <div class="setting-item">
+                <label>Dark Mode</label>
+                <input type="checkbox" id="pref-dark" checked onchange="ide.toggleTheme()">
+            </div>
+            <button class="btn-close" onclick="toggleSettings()">Save & Close</button>
+        </div>
     </div>
 </div>
