@@ -98,8 +98,16 @@
 
     // AUTHENTICATION
 async function handleLogin() {
-    const u = document.getElementById('auth-user').value;
+    const u = document.getElementById('auth-user').value.trim();
     const p = document.getElementById('auth-pass').value;
+    const status = document.getElementById('auth-status');
+
+    if (!u || !p) {
+        status.innerText = "Enter Username & Password";
+        return;
+    }
+
+    status.innerText = "Connecting...";
 
     try {
         const resp = await fetch(`${API_URL}/auth`, {
@@ -111,15 +119,20 @@ async function handleLogin() {
         if (resp.ok) {
             const data = await resp.json();
             currentUser = data.username;
-            userProjects = data.projects; // This is now a clean object
+            userProjects = data.projects;
+            
+            // Hide modal and show editor
             document.getElementById('auth-modal').style.display = 'none';
+            document.getElementById('user-display').innerText = "Logged in: " + currentUser;
             renderProjectList();
             loadProject(Object.keys(userProjects)[0]);
         } else {
-            alert("Login Failed. Check password.");
+            const errorMsg = await resp.text();
+            status.innerText = "Login Failed: " + errorMsg;
         }
     } catch (e) {
-        alert("Cannot connect to Railway. Check if server is sleeping.");
+        status.innerText = "Error: Cannot reach Railway server.";
+        console.error(e);
     }
 }
     // PROJECT MANAGEMENT
