@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Multi-Project</title>
+    <title>Skript IDE Pro - Accounts & Settings</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -11,36 +11,34 @@
             --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; --orange: #ffb86c; --red: #ff5555;
         }
         
-        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
+        body.theme-monokai { --bg: #272822; --sidebar: #1e1f1c; --fg: #f8f8f2; --purple: #ae81ff; --selection: #49483e; --cyan: #66d9ef; --pink: #f92672; --green: #a6e22e; }
+        body.theme-light { --bg: #ffffff; --sidebar: #f0f0f0; --fg: #2e3440; --purple: #5e81ac; --selection: #d8dee9; --comment: #9ea3af; --cyan: #88c0d0; --pink: #bf616a; --green: #a3be8c; }
+
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); transition: background 0.3s; }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar */
         .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
         .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .project-list { flex: 1; padding: 10px; overflow-y: auto; }
-        .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; justify-content: space-between; transition: 0.2s; }
+        .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; justify-content: space-between; transition: 0.2s; align-items: center; }
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: white; }
         
-        /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
 
-        /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 15px 5px; text-align: right; font-family: monospace; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 15px 5px; text-align: right; font-family: 'Fira Code', monospace; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; flex-shrink: 0;}
         .input-area { flex: 1; position: relative; overflow: hidden; }
-        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 15px; border: 0; font-family: 'Consolas', monospace; line-height: 1.6; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; font-size: 14px; }
+        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 15px; border: 0; font-family: 'Fira Code', monospace; line-height: 1.6; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; }
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Modals */
-        .modal-overlay { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
         .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 350px; border: 1px solid var(--purple); }
         .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
         
-        /* Highlighting Classes */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
@@ -51,9 +49,9 @@
 </head>
 <body>
 
-<div id="auth-modal" class="modal-overlay">
+<div id="auth-modal" class="modal-overlay" style="display: flex;">
     <div class="modal">
-        <h2 id="auth-title" style="margin-top:0; color:var(--purple)">Welcome Back</h2>
+        <h2 style="margin-top:0; color:var(--purple)">Skript Account</h2>
         <input type="text" id="auth-user" class="input-field" placeholder="Username">
         <input type="password" id="auth-pass" class="input-field" placeholder="Password">
         <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleAuth()">LOGIN / SIGN UP</button>
@@ -61,17 +59,31 @@
     </div>
 </div>
 
+<div id="settings-modal" class="modal-overlay">
+    <div class="modal">
+        <h2 style="margin-top:0; color:var(--purple)">Editor Config</h2>
+        <label style="font-size: 11px; color: var(--purple); font-weight: bold;">THEME</label>
+        <select id="theme-select" class="input-field" onchange="changeTheme()">
+            <option value="dracula">Dracula</option>
+            <option value="monokai">Monokai</option>
+            <option value="light">Light</option>
+        </select>
+        <label style="font-size: 11px; color: var(--purple); font-weight: bold;">FONT SIZE</label>
+        <input type="number" id="font-size" class="input-field" value="14" onchange="changeFontSize()">
+        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="closeSettings()">CLOSE</button>
+    </div>
+</div>
+
 <div class="container">
     <div class="sidebar">
         <div class="sidebar-brand">Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small></div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
+            <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Guest</div>
             <button class="tool-btn" style="width:100%" onclick="createNewProject()">+ NEW PROJECT</button>
         </div>
-        <div class="project-list" id="project-list">
-            </div>
-        <div style="padding: 15px; display:flex; gap:5px;">
-            <button class="tool-btn" style="flex:1" onclick="logout()">LOGOUT</button>
+        <div class="project-list" id="project-list"></div>
+        <div style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <button class="tool-btn" style="width:100%" onclick="logout()">LOGOUT</button>
         </div>
     </div>
 
@@ -80,7 +92,7 @@
             <span id="current-filename" style="color: var(--purple); font-weight: bold;">No file open</span>
             <div style="display:flex; gap:10px;">
                 <button class="tool-btn" onclick="saveCurrentProject()">💾 SAVE</button>
-                <button class="tool-btn" onclick="copyCode()">📋 COPY</button>
+                <button class="tool-btn" onclick="openSettings()">⚙️ SETTINGS</button>
             </div>
         </div>
         <div class="editor-container">
@@ -99,24 +111,23 @@
     const elGutter = document.getElementById('gutter');
     const elProjList = document.getElementById('project-list');
 
-    const dictionary = ["on join:", "on quit:", "command", "trigger:", "send", "set", "broadcast", "if", "else", "wait", "loop", "cancel event"];
+    const dictionary = ["on join:", "on quit:", "command", "trigger:", "send", "set", "broadcast", "if", "else", "wait", "loop"];
 
     let users = JSON.parse(localStorage.getItem('sk_users')) || {};
+    let config = JSON.parse(localStorage.getItem('sk_config')) || { theme: 'dracula', fontSize: 14 };
     let currentUser = null;
     let currentProjectId = null;
 
-    // --- AUTHENTICATION ---
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         const p = document.getElementById('auth-pass').value.trim();
         if(!u || !p) return;
-
         if (users[u]) {
             if (users[u].pass === p) login(u);
             else document.getElementById('auth-msg').innerText = "Incorrect password!";
         } else {
             users[u] = { pass: p, projects: { "main.sk": "on join:\n\tsend \"Hello!\"" } };
-            saveUsers();
+            localStorage.setItem('sk_users', JSON.stringify(users));
             login(u);
         }
     }
@@ -125,26 +136,26 @@
         currentUser = username;
         document.getElementById('auth-modal').style.display = 'none';
         document.getElementById('user-display').innerText = "User: " + username;
+        
+        // Load settings
+        document.getElementById('theme-select').value = config.theme;
+        document.getElementById('font-size').value = config.fontSize;
+        changeTheme();
+        changeFontSize();
+        
         renderProjectList();
         loadProject(Object.keys(users[username].projects)[0]);
     }
 
-    function logout() {
-        location.reload();
-    }
+    function logout() { location.reload(); }
 
-    function saveUsers() {
-        localStorage.setItem('sk_users', JSON.stringify(users));
-    }
-
-    // --- PROJECT MANAGEMENT ---
     function renderProjectList() {
         elProjList.innerHTML = "";
         const projs = users[currentUser].projects;
         Object.keys(projs).forEach(name => {
             const div = document.createElement('div');
             div.className = `project-item ${currentProjectId === name ? 'active' : ''}`;
-            div.innerHTML = `<span>📄 ${name}</span><span onclick="deleteProject('${name}', event)" style="color:var(--red)">×</span>`;
+            div.innerHTML = `<span>📄 ${name}</span><span onclick="deleteProject('${name}', event)" style="color:var(--red); font-size:16px;">×</span>`;
             div.onclick = () => loadProject(name);
             elProjList.appendChild(div);
         });
@@ -162,15 +173,15 @@
     function saveCurrentProject() {
         if(!currentUser || !currentProjectId) return;
         users[currentUser].projects[currentProjectId] = elInput.value;
-        saveUsers();
-        alert("Project Saved!");
+        localStorage.setItem('sk_users', JSON.stringify(users));
+        alert("Saved successfully!");
     }
 
     function createNewProject() {
-        const name = prompt("Project Name (e.g., test.sk):");
+        const name = prompt("Filename (e.g. kit.sk):");
         if(name && !users[currentUser].projects[name]) {
-            users[currentUser].projects[name] = "# New Skript File";
-            saveUsers();
+            users[currentUser].projects[name] = "# New file";
+            localStorage.setItem('sk_users', JSON.stringify(users));
             loadProject(name);
         }
     }
@@ -179,18 +190,33 @@
         e.stopPropagation();
         if(confirm(`Delete ${name}?`)) {
             delete users[currentUser].projects[name];
-            saveUsers();
+            localStorage.setItem('sk_users', JSON.stringify(users));
             renderProjectList();
             if(currentProjectId === name) loadProject(Object.keys(users[currentUser].projects)[0]);
         }
+    }
+
+    // --- SETTINGS LOGIC ---
+    function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
+    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
+
+    function changeTheme() {
+        config.theme = document.getElementById('theme-select').value;
+        document.body.className = config.theme === 'dracula' ? '' : 'theme-' + config.theme;
+        localStorage.setItem('sk_config', JSON.stringify(config));
+    }
+
+    function changeFontSize() {
+        config.fontSize = document.getElementById('font-size').value;
+        const size = config.fontSize + 'px';
+        elInput.style.fontSize = elOutput.style.fontSize = size;
+        localStorage.setItem('sk_config', JSON.stringify(config));
     }
 
     // --- EDITOR LOGIC ---
     elInput.addEventListener('keydown', function(e) {
         const start = this.selectionStart;
         const val = this.value;
-
-        // Auto-Indentation (Bonuses)
         if (e.key === 'Enter') {
             const line = val.substring(0, start).split('\n').pop();
             if (line.trim().endsWith(':')) {
@@ -198,41 +224,34 @@
                 const tabs = line.match(/^\t*/)[0];
                 this.value = val.substring(0, start) + "\n" + tabs + "\t" + val.substring(start);
                 this.selectionStart = this.selectionEnd = start + tabs.length + 2;
-                onEditorInput();
+                updateEditor();
             }
         }
-
-        // Bracket Pairs
         const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
         if (pairs[e.key]) {
             e.preventDefault();
             this.value = val.substring(0, start) + e.key + pairs[e.key] + val.substring(this.selectionEnd);
             this.selectionStart = this.selectionEnd = start + 1;
-            onEditorInput();
+            updateEditor();
         }
-
-        // Tab Autocomplete
         if (e.key === 'Tab') {
-            const lastWord = val.substring(0, start).split(/[\s\n\t]+/).pop();
-            const match = dictionary.find(w => w.startsWith(lastWord.toLowerCase()));
-            if (match && lastWord.length > 1) {
+            const word = val.substring(0, start).split(/[\s\n\t]+/).pop();
+            const match = dictionary.find(w => w.startsWith(word.toLowerCase()));
+            if (match && word.length > 1) {
                 e.preventDefault();
-                const wordStart = start - lastWord.length;
+                const wordStart = start - word.length;
                 this.value = val.substring(0, wordStart) + match + val.substring(this.selectionEnd);
                 this.selectionStart = this.selectionEnd = wordStart + match.length;
-                onEditorInput();
+                updateEditor();
             }
         }
     });
 
-    function onEditorInput() {
-        updateEditor();
-    }
+    function onEditorInput() { updateEditor(); }
 
     function updateEditor() {
         let code = elInput.value;
         elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
-
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
@@ -241,18 +260,12 @@
         h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
         const kw = /\b(send|broadcast|set|add|if|else|loop|wait|stop|command|trigger)\b/g;
         h = h.replace(kw, '<span class="sk-effect">$1</span>');
-
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
     }
 
     function syncScroll() {
         elOutput.scrollTop = elGutter.scrollTop = elInput.scrollTop;
         elOutput.scrollLeft = elInput.scrollLeft;
-    }
-
-    function copyCode() {
-        navigator.clipboard.writeText(elInput.value);
-        alert("Code copied to clipboard!");
     }
 </script>
 </body>
