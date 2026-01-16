@@ -3,46 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Addons & Accounts</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <title>Skript IDE - Railway Cloud Edition</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
             --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; --orange: #ffb86c; --red: #ff5555;
         }
-        
-        body.theme-monokai { --bg: #272822; --sidebar: #1e1f1c; --fg: #f8f8f2; --purple: #ae81ff; --selection: #49483e; --cyan: #66d9ef; --pink: #f92672; --green: #a6e22e; }
-        body.theme-light { --bg: #ffffff; --sidebar: #f0f0f0; --fg: #2e3440; --purple: #5e81ac; --selection: #d8dee9; --comment: #9ea3af; --cyan: #88c0d0; --pink: #bf616a; --green: #a3be8c; }
 
-        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); transition: background 0.3s; }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
         /* Sidebar */
-        .sidebar { width: 280px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+        .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); }
         .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .project-list { flex: 1; padding: 10px; overflow-y: auto; }
-        .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; justify-content: space-between; transition: 0.2s; align-items: center; }
+        .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; justify-content: space-between; transition: 0.2s; }
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: white; }
         
-        /* Main */
-        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+        /* Main Editor */
+        .main { flex: 1; display: flex; flex-direction: column; }
         .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
-        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; border: none; }
+        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
 
-        /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 15px 5px; text-align: right; font-family: 'Fira Code', monospace; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; flex-shrink: 0;}
-        .input-area { flex: 1; position: relative; overflow: hidden; }
-        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 15px; border: 0; font-family: 'Fira Code', monospace; line-height: 1.6; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; font-size: 14px; }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 20px 5px; text-align: right; font-family: monospace; border-right: 1px solid rgba(255,255,255,0.1); font-size: 14px; line-height: 1.5; }
+        .input-area { flex: 1; position: relative; }
+        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 20px; border: 0; font-family: 'Consolas', 'Monaco', monospace; line-height: 1.5; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; font-size: 14px; }
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Modals */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
-        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 350px; border: 1px solid var(--purple); }
-        .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
+        /* Auth Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; }
+        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 320px; border: 1px solid var(--purple); text-align: center; }
+        .input-field { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
         
         /* Syntax Colors */
         .sk-event { color: var(--pink); font-weight: bold; }
@@ -50,281 +45,140 @@
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: var(--green); }
-        .sk-bracket { color: var(--purple); font-weight: bold; }
     </style>
 </head>
-<body onkeydown="if(event.key==='Enter' && document.getElementById('auth-modal').style.display !== 'none') handleAuth()">
+<body>
 
-<div id="auth-modal" class="modal-overlay" style="display: flex;">
+<div id="auth-modal" class="modal-overlay">
     <div class="modal">
-        <h2 style="margin-top:0; color:var(--purple)">Skript Account</h2>
-        <input type="text" id="auth-user" class="input-field" placeholder="Username" autofocus>
+        <h2 style="color:var(--purple); margin-top:0">Railway Cloud</h2>
+        <input type="text" id="auth-user" class="input-field" placeholder="Username">
         <input type="password" id="auth-pass" class="input-field" placeholder="Password">
-        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white;" onclick="handleAuth()">LOGIN / SIGN UP</button>
-        <p id="auth-msg" style="font-size: 11px; color: var(--red); margin-top: 10px;"></p>
-    </div>
-</div>
-
-<div id="settings-modal" class="modal-overlay">
-    <div class="modal">
-        <h2 style="margin-top:0; color:var(--purple)">Editor Config</h2>
-        <label style="font-size: 11px; color: var(--purple); font-weight: bold;">THEME</label>
-        <select id="theme-select" class="input-field" onchange="changeTheme()">
-            <option value="dracula">Dracula</option>
-            <option value="monokai">Monokai</option>
-            <option value="light">Light</option>
-        </select>
-        <label style="font-size: 11px; color: var(--purple); font-weight: bold;">FONT SIZE</label>
-        <input type="number" id="font-size" class="input-field" value="14" onchange="changeFontSize()">
-        <hr style="opacity: 0.1; margin: 20px 0;">
-        <label style="font-size: 11px; color: var(--green); font-weight: bold;">CLOUD SYNC (CSV)</label>
-        <input type="password" id="sync-key" class="input-field" placeholder="Encryption Key">
-        <div style="display: flex; gap: 10px;">
-            <button class="tool-btn" style="flex: 1; background: var(--selection);" onclick="exportData()">EXPORT</button>
-            <button class="tool-btn" style="flex: 1; background: var(--selection);" onclick="document.getElementById('csv-import').click()">IMPORT</button>
-        </div>
-        <input type="file" id="csv-import" style="display: none;" accept=".csv" onchange="handleImport(this)">
-        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; margin-top: 20px;" onclick="closeSettings()">CLOSE</button>
+        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleLogin()">LOGIN / REGISTER</button>
+        <p id="auth-status" style="font-size: 12px; color: var(--red); margin-top: 10px;"></p>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-brand">Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small></div>
-        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Guest</div>
+        <div class="sidebar-brand">Skript IDE <small style="font-size: 10px; opacity: 0.5;">CLOUDV1</small></div>
+        <div style="padding: 15px;">
+            <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom:10px;">Offline</div>
             <button class="tool-btn" style="width:100%" onclick="createNewProject()">+ NEW PROJECT</button>
         </div>
         <div class="project-list" id="project-list"></div>
-        <div style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 10px; color: var(--comment); text-align: center;">
-            <p>Addons Enabled: SkQuery, Skellett, TuSKe</p>
-            <button class="tool-btn" style="width:100%" onclick="logout()">LOGOUT</button>
-        </div>
     </div>
 
     <div class="main">
         <div class="toolbar">
             <span id="current-filename" style="color: var(--purple); font-weight: bold;">No file open</span>
-            <div style="display:flex; gap:10px;">
-                <button class="tool-btn" onclick="saveCurrentProject()">💾 SAVE</button>
-                <button class="tool-btn" onclick="openSettings()">⚙️ SETTINGS</button>
-            </div>
+            <button class="tool-btn" style="background: var(--green); color: black;" onclick="saveToCloud()">💾 SAVE TO CLOUD</button>
         </div>
         <div class="editor-container">
             <div id="gutter">1</div>
             <div class="input-area">
                 <pre id="highlighting"></pre>
-                <textarea id="editing" spellcheck="false" oninput="onEditorInput()" onscroll="syncScroll()"></textarea>
+                <textarea id="editing" spellcheck="false" oninput="updateEditor()" onscroll="syncScroll()"></textarea>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    // --- SET YOUR RAILWAY URL HERE ---
+    const API_URL = "postgres-production-cb38.up.railway.app"; 
+
     const elInput = document.getElementById('editing');
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
-    const elProjList = document.getElementById('project-list');
-
-    // ADDON DICTIONARY
-    const dictionary = [
-        "on join:", "on quit:", "on break:", "on place:", "on death:", "on damage:", "on chat:", "on command:",
-        "command", "trigger:", "permission:", "executable by:", "arguments:", "usage:",
-        "send", "broadcast", "set", "add", "remove", "give", "cancel event", "stop", "wait", "loop", "if", "else",
-        "open virtual chest", "format slot", "create a gui", "display hologram", "metadata tag", "mysql query",
-        "spawn particle", "play sound", "launch firework", "apply potion", "equip", "disguise as"
-    ];
-
-    let users = JSON.parse(localStorage.getItem('sk_users')) || {};
-    let config = JSON.parse(localStorage.getItem('sk_config')) || { theme: 'dracula', fontSize: 14 };
+    
     let currentUser = null;
-    let currentProjectId = null;
+    let userProjects = {};
+    let currentFileName = "";
 
-    // --- AUTHENTICATION ---
-    function handleAuth() {
-        const u = document.getElementById('auth-user').value.trim();
-        const p = document.getElementById('auth-pass').value.trim();
-        const msg = document.getElementById('auth-msg');
-        if(!u || !p) return msg.innerText = "Please fill in all fields.";
+    // AUTHENTICATION
+    async function handleLogin() {
+        const u = document.getElementById('auth-user').value.toLowerCase().trim();
+        const p = document.getElementById('auth-pass').value;
+        if(!u || !p) return;
 
-        if (users[u]) {
-            if (users[u].pass === p) login(u);
-            else msg.innerText = "Incorrect password!";
-        } else {
-            users[u] = { pass: p, projects: { "main.sk": "on join:\n\tsend \"&aWelcome to the server!\"\n\tset {joined.%player%} to true" } };
-            localStorage.setItem('sk_users', JSON.stringify(users));
-            login(u);
+        try {
+            const resp = await fetch(`${API_URL}/auth`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ u, p })
+            });
+
+            if (resp.ok) {
+                const data = await resp.json();
+                currentUser = u;
+                userProjects = data.projects;
+                document.getElementById('auth-modal').style.display = 'none';
+                document.getElementById('user-display').innerText = "Logged in: " + u;
+                renderProjectList();
+                loadProject(Object.keys(userProjects)[0]);
+            } else {
+                document.getElementById('auth-status').innerText = "Invalid Password!";
+            }
+        } catch (e) {
+            document.getElementById('auth-status').innerText = "Server Unreachable!";
         }
     }
 
-    function login(username) {
-        currentUser = username;
-        document.getElementById('auth-modal').style.display = 'none';
-        document.getElementById('user-display').innerText = "User: " + username;
-        document.getElementById('theme-select').value = config.theme;
-        document.getElementById('font-size').value = config.fontSize;
-        changeTheme();
-        changeFontSize();
-        renderProjectList();
-        loadProject(Object.keys(users[username].projects)[0]);
-    }
-
-    function logout() { location.reload(); }
-
-    // --- CLOUD SYNC ---
-    function exportData() {
-        const key = document.getElementById('sync-key').value;
-        if(!key) return alert("Set a Sync Key first!");
-        const encrypted = CryptoJS.AES.encrypt(JSON.stringify(users), key).toString();
-        const blob = new Blob([`sk_backup,${encrypted}`], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `sk_sync_${Date.now()}.csv`;
-        a.click();
-    }
-
-    function handleImport(input) {
-        const key = document.getElementById('sync-key').value;
-        if(!key) return alert("Enter Sync Key!");
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const enc = e.target.result.split(',')[1];
-                const dec = JSON.parse(CryptoJS.AES.decrypt(enc, key).toString(CryptoJS.enc.Utf8));
-                users = {...users, ...dec};
-                localStorage.setItem('sk_users', JSON.stringify(users));
-                alert("Imported!"); location.reload();
-            } catch(err) { alert("Invalid key or file."); }
-        };
-        reader.readAsText(input.files[0]);
-    }
-
-    // --- IDE CORE ---
+    // PROJECT MANAGEMENT
     function renderProjectList() {
-        elProjList.innerHTML = "";
-        const projs = users[currentUser].projects;
-        Object.keys(projs).forEach(name => {
+        const list = document.getElementById('project-list');
+        list.innerHTML = "";
+        Object.keys(userProjects).forEach(name => {
             const div = document.createElement('div');
-            div.className = `project-item ${currentProjectId === name ? 'active' : ''}`;
-            div.innerHTML = `<span>📄 ${name}</span><span onclick="deleteProject('${name}', event)" style="color:var(--red)">×</span>`;
+            div.className = `project-item ${currentFileName === name ? 'active' : ''}`;
+            div.innerText = "📄 " + name;
             div.onclick = () => loadProject(name);
-            elProjList.appendChild(div);
+            list.appendChild(div);
         });
     }
 
     function loadProject(name) {
         if(!name) return;
-        currentProjectId = name;
-        elInput.value = users[currentUser].projects[name];
+        currentFileName = name;
+        elInput.value = userProjects[name];
         document.getElementById('current-filename').innerText = name;
         updateEditor();
         renderProjectList();
     }
 
-    function saveCurrentProject() {
-        if(!currentUser || !currentProjectId) return;
-        users[currentUser].projects[currentProjectId] = elInput.value;
-        localStorage.setItem('sk_users', JSON.stringify(users));
-        alert("Saved!");
+    async function saveToCloud() {
+        if(!currentUser) return;
+        userProjects[currentFileName] = elInput.value;
+
+        const resp = await fetch(`${API_URL}/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ u: currentUser, projects: userProjects })
+        });
+
+        if(resp.ok) alert("Cloud Sync Success!");
     }
 
     function createNewProject() {
-        const name = prompt("Enter filename:");
-        if(name && !users[currentUser].projects[name]) {
-            users[currentUser].projects[name] = "# New file";
-            localStorage.setItem('sk_users', JSON.stringify(users));
+        const name = prompt("Enter filename (e.g. script.sk):");
+        if(name && !userProjects[name]) {
+            userProjects[name] = "# New Skript File";
             loadProject(name);
+            saveToCloud();
         }
     }
 
-    function deleteProject(name, e) {
-        e.stopPropagation();
-        if(confirm(`Delete ${name}?`)) {
-            delete users[currentUser].projects[name];
-            localStorage.setItem('sk_users', JSON.stringify(users));
-            renderProjectList();
-            if(currentProjectId === name) loadProject(Object.keys(users[currentUser].projects)[0]);
-        }
-    }
-
-    function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
-    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
-
-    function changeTheme() {
-        config.theme = document.getElementById('theme-select').value;
-        document.body.className = config.theme === 'dracula' ? '' : 'theme-' + config.theme;
-        localStorage.setItem('sk_config', JSON.stringify(config));
-    }
-
-    function changeFontSize() {
-        config.fontSize = document.getElementById('font-size').value;
-        elInput.style.fontSize = elOutput.style.fontSize = config.fontSize + 'px';
-        localStorage.setItem('sk_config', JSON.stringify(config));
-    }
-
-    // KEYBOARD LOGIC (Addons + Indent + Brackets)
-    elInput.addEventListener('keydown', function(e) {
-        const start = this.selectionStart;
-        const val = this.value;
-
-        // 1. Tab Autocomplete (Addons)
-        if (e.key === 'Tab') {
-            const before = val.substring(0, start).split(/[\s\n\t]+/).pop();
-            const match = dictionary.find(w => w.startsWith(before.toLowerCase()));
-            
-            if (match && before.length > 1) {
-                e.preventDefault();
-                const wordStart = start - before.length;
-                this.value = val.substring(0, wordStart) + match + val.substring(this.selectionEnd);
-                this.selectionStart = this.selectionEnd = wordStart + match.length;
-                updateEditor();
-            } else {
-                // Default Tab Indent
-                e.preventDefault();
-                this.value = val.substring(0, start) + "\t" + val.substring(this.selectionEnd);
-                this.selectionStart = this.selectionEnd = start + 1;
-                updateEditor();
-            }
-        }
-
-        // 2. Auto-Indent on Enter
-        if (e.key === 'Enter') {
-            const line = val.substring(0, start).split('\n').pop();
-            if (line.trim().endsWith(':')) {
-                e.preventDefault();
-                const tabs = line.match(/^\t*/)[0];
-                this.value = val.substring(0, start) + "\n" + tabs + "\t" + val.substring(start);
-                this.selectionStart = this.selectionEnd = start + tabs.length + 2;
-                updateEditor();
-            }
-        }
-
-        // 3. Bracket Pairing
-        const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
-        if (pairs[e.key]) {
-            e.preventDefault();
-            this.value = val.substring(0, start) + e.key + pairs[e.key] + val.substring(this.selectionEnd);
-            this.selectionStart = this.selectionEnd = start + 1;
-            updateEditor();
-        }
-    });
-
-    function onEditorInput() { updateEditor(); }
-
+    // EDITOR LOGIC
     function updateEditor() {
         let code = elInput.value;
         elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
         
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
-        h = h.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
-        
-        const effects = /\b(send|broadcast|set|add|if|else|loop|wait|stop|command|trigger|format|virtual|gui|hologram|particle|sound)\b/g;
-        h = h.replace(effects, '<span class="sk-effect">$1</span>');
+        h = h.replace(/\b(send|broadcast|set|add|if|else|loop|wait|stop|command|trigger)\b/g, '<span class="sk-effect">$1</span>');
         
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
     }
@@ -333,6 +187,17 @@
         elOutput.scrollTop = elGutter.scrollTop = elInput.scrollTop;
         elOutput.scrollLeft = elInput.scrollLeft;
     }
+
+    // Handle Tab Indents
+    elInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            this.value = this.value.substring(0, start) + "\t" + this.value.substring(this.selectionEnd);
+            this.selectionStart = this.selectionEnd = start + 1;
+            updateEditor();
+        }
+    });
 </script>
 </body>
 </html>
