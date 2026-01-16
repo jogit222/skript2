@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Multi-Project</title>
+    <title>Skript IDE Pro - Skript-GUI Edition</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
-            --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; --orange: #ffb86c; --red: #ff5555;
+            --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; 
+            --orange: #ffb86c; --red: #ff5555; --yellow: #f1fa8c;
+            --blue: #61afef; /* Addon Color */
+            --gui-gold: #e5c07b; /* Specific color for GUI logic */
         }
         
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
@@ -47,6 +50,10 @@
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: var(--green); }
         .sk-bracket { color: var(--purple); font-weight: bold; }
+        .sk-addon { color: var(--blue); font-style: italic; } 
+        .sk-gui { color: var(--gui-gold); font-weight: bold; } /* New Skript-GUI specific */
+        
+        .addon-badge { background: var(--gui-gold); color: #000; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -63,7 +70,10 @@
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-brand">Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small></div>
+        <div class="sidebar-brand">
+            Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small>
+            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Skript-GUI Ready</div>
+        </div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
             <button class="tool-btn" style="width:100%" onclick="createNewProject()">+ NEW PROJECT</button>
@@ -77,7 +87,10 @@
 
     <div class="main">
         <div class="toolbar">
-            <span id="current-filename" style="color: var(--purple); font-weight: bold;">No file open</span>
+            <div style="display:flex; align-items:center;">
+                <span id="current-filename" style="color: var(--purple); font-weight: bold;">No file open</span>
+                <span id="addon-indicator" class="addon-badge" style="display:none;">GUI MODE</span>
+            </div>
             <div style="display:flex; gap:10px;">
                 <button class="tool-btn" onclick="saveCurrentProject()">💾 SAVE</button>
                 <button class="tool-btn" onclick="copyCode()">📋 COPY</button>
@@ -99,7 +112,57 @@
     const elGutter = document.getElementById('gutter');
     const elProjList = document.getElementById('project-list');
 
-    const dictionary = ["on join:", "on quit:", "command", "trigger:", "send", "set", "broadcast", "if", "else", "wait", "loop", "cancel event"];
+    // --- SYNTAX DATABASE ---
+    const syntaxDB = {
+        // Massive Core Update
+        core: [
+            // Basic Structure
+            "command", "trigger:", "function", "return", "options:", "variables:", "aliases:",
+            // Events
+            "on join:", "on quit:", "on load:", "on unload:", "on skript load:", "on damage:", "on death:", 
+            "on rightclick:", "on leftclick:", "on place:", "on break:", "on chat:", "on command:", 
+            "on drop:", "on pickup:", "on consume:", "on respawn:", "on connect:", "on disconnect:",
+            // Effects
+            "send", "broadcast", "set", "add", "remove", "delete", "clear", "wait", "stop", "cancel event", 
+            "apply", "teleport", "give", "drop", "spawn", "kill", "damage", "heal", "repair", "execute console command", "make player execute",
+            // Logic/Loops
+            "if", "else", "else if", "while", "loop", "loop-player", "loop-value", "loop-index", "loop-entity", "continue", "exit",
+            // Expressions
+            "arg-1", "arg-2", "player", "victim", "attacker", "event-block", "event-location", "event-item", "uuid", "name of", 
+            "distance between", "location of", "metadata", "now", "unix timestamp", "health of", "max health of"
+        ],
+        
+        // Specialized Skript-GUI Support
+        skriptgui: [
+            // Creation
+            "create a gui with virtual chest inventory", "create a gui with virtual hopper inventory", "create a gui with virtual dropper inventory",
+            "open last created gui", "open the last created gui", "edit gui", "edit last created gui", 
+            // Slots
+            "make gui slot", "make next gui slot", "format gui slot",
+            // Sections & Actions
+            "to run:", "to close:", "to do nothing", "unstealable", "to nothing",
+            // Properties
+            "gui-inventory", "gui-slot", "gui-click-type", "gui-cursor", "gui-item", "gui-name", 
+            "run function", "from function",
+            // Shapes (if using shapes feature)
+            "change gui shape"
+        ],
+
+        // General Addon Support
+        addons: [
+            // SkBee
+            "nbt compound", "nbt list", "set nbt", "spawn armor stand", "update score", "create team", 
+            // SkQuery / TuSKe (Legacy)
+            "open virtual chest", "format slot", "open gui",
+            // Vixio / Discord
+            "login to discord", "create embed", "send message", "reply with",
+            // Generic
+            "offline player", "permission", "parse", "replace", "contains"
+        ]
+    };
+
+    // Flatten for Autocomplete
+    const dictionary = [...syntaxDB.core, ...syntaxDB.skriptgui, ...syntaxDB.addons];
 
     let users = JSON.parse(localStorage.getItem('sk_users')) || {};
     let currentUser = null;
@@ -115,7 +178,7 @@
             if (users[u].pass === p) login(u);
             else document.getElementById('auth-msg').innerText = "Incorrect password!";
         } else {
-            users[u] = { pass: p, projects: { "main.sk": "on join:\n\tsend \"Hello!\"" } };
+            users[u] = { pass: p, projects: { "gui-test.sk": "command /gui:\n\ttrigger:\n\t\tcreate a gui with virtual chest inventory with 3 rows named \"&8Menu\":\n\t\t\tmake gui slot 13 with diamond named \"&bClick Me\":\n\t\t\t\tto run:\n\t\t\t\t\tsend \"Clicked!\"\n\t\t\t\t\tclose player's inventory\n\t\topen the last created gui to player" } };
             saveUsers();
             login(u);
         }
@@ -167,9 +230,9 @@
     }
 
     function createNewProject() {
-        const name = prompt("Project Name (e.g., test.sk):");
+        const name = prompt("Project Name (e.g., gui.sk):");
         if(name && !users[currentUser].projects[name]) {
-            users[currentUser].projects[name] = "# New Skript File";
+            users[currentUser].projects[name] = "# New Skript File\n";
             saveUsers();
             loadProject(name);
         }
@@ -181,7 +244,11 @@
             delete users[currentUser].projects[name];
             saveUsers();
             renderProjectList();
-            if(currentProjectId === name) loadProject(Object.keys(users[currentUser].projects)[0]);
+            if(currentProjectId === name) {
+                const keys = Object.keys(users[currentUser].projects);
+                if(keys.length > 0) loadProject(keys[0]);
+                else { currentProjectId = null; elInput.value = ""; }
+            }
         }
     }
 
@@ -190,9 +257,10 @@
         const start = this.selectionStart;
         const val = this.value;
 
-        // Auto-Indentation (Bonuses)
+        // Auto-Indentation (Enhanced for GUI sections like 'to run:')
         if (e.key === 'Enter') {
             const line = val.substring(0, start).split('\n').pop();
+            // Indent if line ends with :
             if (line.trim().endsWith(':')) {
                 e.preventDefault();
                 const tabs = line.match(/^\t*/)[0];
@@ -202,7 +270,6 @@
             }
         }
 
-        // Bracket Pairs
         const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
         if (pairs[e.key]) {
             e.preventDefault();
@@ -213,14 +280,22 @@
 
         // Tab Autocomplete
         if (e.key === 'Tab') {
+            e.preventDefault();
             const lastWord = val.substring(0, start).split(/[\s\n\t]+/).pop();
-            const match = dictionary.find(w => w.startsWith(lastWord.toLowerCase()));
-            if (match && lastWord.length > 1) {
-                e.preventDefault();
-                const wordStart = start - lastWord.length;
-                this.value = val.substring(0, wordStart) + match + val.substring(this.selectionEnd);
-                this.selectionStart = this.selectionEnd = wordStart + match.length;
-                onEditorInput();
+            if (lastWord.length > 1) {
+                const match = dictionary.find(w => w.startsWith(lastWord.toLowerCase()));
+                if (match) {
+                    const wordStart = start - lastWord.length;
+                    this.value = val.substring(0, wordStart) + match + val.substring(this.selectionEnd);
+                    this.selectionStart = this.selectionEnd = wordStart + match.length;
+                    onEditorInput();
+                } else {
+                    this.value = val.substring(0, start) + "\t" + val.substring(this.selectionEnd);
+                    this.selectionStart = this.selectionEnd = start + 1;
+                }
+            } else {
+                this.value = val.substring(0, start) + "\t" + val.substring(this.selectionEnd);
+                this.selectionStart = this.selectionEnd = start + 1;
             }
         }
     });
@@ -234,13 +309,40 @@
         elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
 
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
+
+        // 1. Strings
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
+
+        // 2. Comments
+        h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
+
+        // 3. Variables
         h = h.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
+
+        // 4. Events
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
+
+        // 5. Core Keywords (Sorted by length to prevent partial matches)
+        const coreSorted = syntaxDB.core.sort((a,b) => b.length - a.length);
+        const coreRegex = new RegExp(`\\b(${coreSorted.map(k => k.replace(/[^a-zA-Z0-9\-]/g, '\\$&')).join('|')})\\b`, 'g');
+        h = h.replace(coreRegex, '<span class="sk-effect">$1</span>');
+
+        // 6. Skript-GUI Highlighting (Gold)
+        const guiSorted = syntaxDB.skriptgui.sort((a,b) => b.length - a.length);
+        const guiRegex = new RegExp(`\\b(${guiSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})`, 'g'); // Removed trailing \b for colons
+        h = h.replace(guiRegex, '<span class="sk-gui">$1</span>');
+
+        // 7. Other Addons (Blue)
+        const addonSorted = syntaxDB.addons.sort((a,b) => b.length - a.length);
+        const addonRegex = new RegExp(`\\b(${addonSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})\\b`, 'g');
+        h = h.replace(addonRegex, '<span class="sk-addon">$1</span>');
+        
+        // 8. Brackets
         h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
-        const kw = /\b(send|broadcast|set|add|if|else|loop|wait|stop|command|trigger)\b/g;
-        h = h.replace(kw, '<span class="sk-effect">$1</span>');
+
+        // Check for GUI usage for the badge
+        const hasGui = guiSorted.some(k => code.includes(k));
+        document.getElementById('addon-indicator').style.display = hasGui ? 'inline-block' : 'none';
 
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
     }
