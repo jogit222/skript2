@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Aligned</title>
+    <title>Skript IDE Pro - Import/Export</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -32,6 +32,7 @@
         .tool-btn:hover { background: rgba(255,255,255,0.1); }
         .btn-green { color: var(--green); border-color: var(--green); }
         .btn-yellow { color: var(--yellow); border-color: var(--yellow); }
+        .btn-cyan { color: var(--cyan); border-color: var(--cyan); }
         .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); justify-content: space-between;}
         
         /* --- ALIGNMENT ENGINE --- */
@@ -44,45 +45,26 @@
             letter-spacing: 0px;
         }
 
-        /* Gutter: Strict Box Model */
         #gutter { 
-            width: 45px; 
-            background: var(--sidebar); 
-            color: var(--comment); 
-            text-align: right; 
-            border-right: 1px solid rgba(255,255,255,0.1); 
-            user-select: none; 
-            box-sizing: border-box;
-            overflow: hidden; /* JS Controls scroll */
-            padding-top: 15px; /* Top offset match */
-            padding-bottom: 15px;
+            width: 45px; background: var(--sidebar); color: var(--comment); 
+            text-align: right; border-right: 1px solid rgba(255,255,255,0.1); 
+            user-select: none; box-sizing: border-box;
+            overflow: hidden; padding-top: 15px; padding-bottom: 15px;
         }
 
-        /* Enforce exact height per line number */
-        .line-number {
-            height: var(--line-height);
-            line-height: var(--line-height);
-            padding-right: 8px;
-        }
-
+        .line-number { height: var(--line-height); line-height: var(--line-height); padding-right: 8px; }
         .input-area { flex: 1; position: relative; overflow: hidden; }
 
-        /* Layers: Exact match padding */
         #editing, #highlighting { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            margin: 0; 
-            padding: 15px; /* Top offset match */
-            border: 0; 
-            tab-size: 4; 
-            white-space: pre; 
-            word-wrap: normal;
-            box-sizing: border-box; 
+            margin: 0; padding: 15px; border: 0; tab-size: 4; 
+            white-space: pre; word-wrap: normal; box-sizing: border-box; 
         }
 
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; overflow: auto; }
         #highlighting { z-index: 2; pointer-events: none; overflow: hidden; color: var(--fg); }
 
-        /* Modals */
+        /* Modals & Highlights */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
         .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); max-height: 80vh; overflow-y: auto; display:flex; flex-direction:column; }
         .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
@@ -91,19 +73,19 @@
         .warning-item { background: rgba(241, 250, 140, 0.1); border-left: 3px solid var(--yellow); padding: 10px; margin-bottom: 8px; font-size: 12px; }
         .success-msg { color: var(--green); text-align: center; padding: 20px; font-weight: bold; font-size: 16px; }
 
-        /* Highlights */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: var(--green); }
         .sk-bracket { color: var(--purple); font-weight: bold; }
-        .sk-addon { color: var(--blue); font-style: italic; } 
         .sk-gui { color: var(--gui-gold); font-weight: bold; }
         .addon-badge { background: var(--gui-gold); color: #000; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-left: 10px; }
     </style>
 </head>
 <body>
+
+<input type="file" id="file-input" style="display: none;" accept=".sk,.txt" onchange="processFileImport(this)">
 
 <div id="auth-modal" class="modal-overlay" style="display:flex;">
     <div class="modal" style="width: 350px;">
@@ -130,15 +112,18 @@
     <div class="sidebar">
         <div class="sidebar-brand">
             Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small>
-            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Aligned Core</div>
+            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Import/Export</div>
         </div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
-            <button class="tool-btn" style="width:100%" onclick="createNewProject()">+ NEW PROJECT</button>
+            <div style="display:flex; gap:5px;">
+                <button class="tool-btn" style="flex:1" onclick="createNewProject()">+ NEW</button>
+                <button class="tool-btn btn-cyan" style="flex:1" onclick="triggerImport()">📂 OPEN</button>
+            </div>
         </div>
         <div class="project-list" id="project-list"></div>
-        <div style="padding: 15px; display:flex; gap:5px;">
-            <button class="tool-btn" style="flex:1" onclick="logout()">LOGOUT</button>
+        <div style="padding: 15px;">
+            <button class="tool-btn" style="width:100%" onclick="logout()">LOGOUT</button>
         </div>
     </div>
 
@@ -149,15 +134,14 @@
                 <span id="addon-indicator" class="addon-badge" style="display:none;">GUI MODE</span>
             </div>
             <div style="display:flex; gap:10px;">
-                <button class="tool-btn btn-yellow" onclick="runSyntaxCheck()">⚠️ CHECK SYNTAX</button>
+                <button class="tool-btn btn-yellow" onclick="runSyntaxCheck()">⚠️ CHECK</button>
+                <button class="tool-btn" onclick="downloadCode()">⬇️ DOWNLOAD</button>
                 <button class="tool-btn btn-green" onclick="saveCurrentProject(false)">💾 SAVE</button>
-                <button class="tool-btn" onclick="copyCode()">📋 COPY</button>
             </div>
         </div>
         
         <div class="editor-container">
-            <div id="gutter" class="code-font">
-                </div>
+            <div id="gutter" class="code-font"></div>
             <div class="input-area">
                 <pre id="highlighting" class="code-font"></pre>
                 <textarea id="editing" class="code-font" spellcheck="false" oninput="onEditorInput()" onscroll="syncScroll()"></textarea>
@@ -183,15 +167,64 @@
     let currentUser = null;
     let currentProjectId = null;
 
-    // Syntax DB
     const syntaxDB = {
         core: ["command", "trigger:", "function", "return", "options:", "variables:", "aliases:", "on join:", "on quit:", "on load:", "on unload:", "on skript load:", "on damage:", "on death:", "on rightclick:", "on leftclick:", "on place:", "on break:", "on chat:", "on command:", "on drop:", "on pickup:", "on consume:", "on respawn:", "on connect:", "on disconnect:", "send", "broadcast", "set", "add", "remove", "delete", "clear", "wait", "stop", "cancel event", "apply", "teleport", "give", "drop", "spawn", "kill", "damage", "heal", "repair", "execute console command", "make player execute", "if", "else", "else if", "while", "loop", "loop-player", "loop-value", "loop-index", "loop-entity", "continue", "exit", "arg-1", "arg-2", "player", "victim", "attacker", "event-block", "event-location", "event-item", "uuid", "name of", "distance between", "location of", "metadata", "now", "unix timestamp", "health of", "max health of"],
         skriptgui: ["create a gui with virtual chest inventory", "create a gui with virtual hopper inventory", "create a gui with virtual dropper inventory", "open last created gui", "open the last created gui", "edit gui", "edit last created gui", "make gui slot", "make next gui slot", "format gui slot", "to run:", "to close:", "to do nothing", "unstealable", "to nothing", "gui-inventory", "gui-slot", "gui-click-type", "gui-cursor", "gui-item", "gui-name", "run function", "from function", "change gui shape"],
         addons: ["nbt compound", "nbt list", "set nbt", "spawn armor stand", "update score", "create team", "open virtual chest", "format slot", "open gui", "login to discord", "create embed", "send message", "reply with", "offline player", "permission", "parse", "replace", "contains"]
     };
-    const dictionary = [...syntaxDB.core, ...syntaxDB.skriptgui, ...syntaxDB.addons];
 
-    // --- AUTH & PROJECT LOGIC (Standard) ---
+    // --- IMPORT / EXPORT FUNCTIONS ---
+    
+    // 1. Download
+    function downloadCode() {
+        if(!currentProjectId) return alert("Please create or open a project first.");
+        
+        const text = elInput.value;
+        const filename = currentProjectId.endsWith(".sk") ? currentProjectId : currentProjectId + ".sk";
+        
+        // Create Blob
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create Fake Link
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+
+    // 2. Import (Trigger)
+    function triggerImport() {
+        document.getElementById('file-input').click();
+    }
+
+    // 3. Import (Process)
+    function processFileImport(input) {
+        if (input.files.length === 0) return;
+        
+        const file = input.files[0];
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const content = e.target.result;
+            // Create a new project with file content
+            createNewProject(file.name, content);
+            // Reset input so same file can be selected again if needed
+            input.value = '';
+        };
+        
+        reader.readAsText(file);
+    }
+
+
+    // --- AUTH & PROJECT LOGIC ---
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         const p = document.getElementById('auth-pass').value.trim();
@@ -200,7 +233,7 @@
             if (users[u].pass === p) login(u);
             else document.getElementById('auth-msg').innerText = "Incorrect password!";
         } else {
-            users[u] = { pass: p, projects: { "gui-test.sk": "command /gui:\n\ttrigger:\n\t\tcreate a gui with virtual chest inventory with 3 rows named \"&8Menu\":\n\t\t\tmake gui slot 13 with diamond named \"&bClick Me\":\n\t\t\t\tto run:\n\t\t\t\t\tsend \"Clicked!\"\n\t\topen the last created gui to player" } };
+            users[u] = { pass: p, projects: { "gui-test.sk": "command /gui:\n\ttrigger:\n\t\tsend \"Hello World\"" } };
             saveUsers();
             login(u);
         }
@@ -234,16 +267,29 @@
         saveUsers();
         elSaveStatus.innerText = "All changes saved";
         elSaveStatus.style.color = "var(--green)";
-        if(!silent) alert("Project Saved!");
+        if(!silent) alert("Project Saved (Locally)!");
     }
-    function createNewProject() {
-        const name = prompt("Project Name (e.g., gui.sk):");
-        if(name && !users[currentUser].projects[name]) {
-            users[currentUser].projects[name] = "# New Skript File\n";
+    
+    // Updated Create Function to support Import
+    function createNewProject(nameOverride = null, contentOverride = null) {
+        let name = nameOverride;
+        
+        if (!name) {
+            name = prompt("Project Name (e.g., gui.sk):");
+        }
+        
+        if (name) {
+            // Prevent overwrite warning (simple version: just append copy)
+            if (users[currentUser].projects[name] && !confirm("Overwrite existing file " + name + "?")) {
+                return;
+            }
+            
+            users[currentUser].projects[name] = contentOverride !== null ? contentOverride : "# New Skript File\n";
             saveUsers();
             loadProject(name);
         }
     }
+
     function deleteProject(name, e) {
         e.stopPropagation();
         if(confirm(`Delete ${name}?`)) {
@@ -258,12 +304,9 @@
         }
     }
 
-    // --- EDITOR INPUT HANDLER ---
+    // --- EDITOR INPUT HANDLER (Same as v6) ---
     elInput.addEventListener('keydown', function(e) {
-        const start = this.selectionStart;
-        const end = this.selectionEnd;
-        const val = this.value;
-
+        const start = this.selectionStart; const end = this.selectionEnd; const val = this.value;
         if (e.key === 'Tab') {
             e.preventDefault();
             if (e.shiftKey) {
@@ -284,14 +327,11 @@
                     this.setSelectionRange(startLineIndex, actualEnd);
                     document.execCommand('insertText', false, result);
                     this.setSelectionRange(startLineIndex, startLineIndex + result.length);
-                } else {
-                    document.execCommand('insertText', false, "\t");
-                }
+                } else { document.execCommand('insertText', false, "\t"); }
             }
             onEditorInput();
             return;
         }
-
         if (e.key === 'Enter') {
             e.preventDefault();
             const lastNewLine = val.lastIndexOf('\n', start - 1);
@@ -306,7 +346,6 @@
             onEditorInput();
             return;
         }
-
         const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
         if (pairs[e.key]) {
             e.preventDefault();
@@ -316,14 +355,13 @@
         }
     });
 
-    // --- SYNTAX & RENDER ---
+    // --- SYNTAX, RENDER, SCROLL (Same as v6) ---
     function runSyntaxCheck() {
         const lines = elInput.value.split('\n');
         const errors = []; const warnings = [];
         let context = { inLoop: false, loopDepth: 0, inTrigger: false, combatContext: false, commandDef: null };
         const code = elInput.value;
         if(code.includes("format slot") && code.includes("make gui slot")) warnings.push({line: "-", msg: "Mixing TuSKe and Skript-GUI syntax."});
-
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i]; const trimmed = line.trim(); const indentLvl = line.search(/\S|$/); 
             if (trimmed === "" || trimmed.startsWith("#")) continue;
@@ -363,16 +401,10 @@
     function updateEditor() {
         let code = elInput.value;
         const lineCount = code.split('\n').length;
-        
-        // --- FIXED LINE NUMBERS ---
-        // Instead of plain text <br>, we generate Strict DIVs with fixed height.
         let gutterHTML = "";
-        for(let i=1; i <= lineCount; i++) {
-            gutterHTML += `<div class="line-number">${i}</div>`;
-        }
+        for(let i=1; i <= lineCount; i++) gutterHTML += `<div class="line-number">${i}</div>`;
         elGutter.innerHTML = gutterHTML;
         
-        // Highlights
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
@@ -387,7 +419,6 @@
         h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
         document.getElementById('addon-indicator').style.display = guiSorted.some(k => code.includes(k)) ? 'inline-block' : 'none';
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
-        
         setTimeout(() => {
             const lines = elInput.value.substr(0, elInput.selectionStart).split("\n");
             document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
@@ -397,10 +428,8 @@
     function syncScroll() {
         elOutput.scrollTop = elInput.scrollTop;
         elOutput.scrollLeft = elInput.scrollLeft;
-        elGutter.scrollTop = elInput.scrollTop; // Sync vertical scroll only
+        elGutter.scrollTop = elInput.scrollTop;
     }
-
-    function copyCode() { navigator.clipboard.writeText(elInput.value); alert("Code copied!"); }
 </script>
 </body>
 </html>
