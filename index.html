@@ -3,193 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE - Railway Cloud Edition</title>
+    <title>Skript IDE Pro - Multi-Project</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
             --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; --orange: #ffb86c; --red: #ff5555;
         }
-
+        
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
         /* Sidebar */
-        .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); }
+        .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
         .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .project-list { flex: 1; padding: 10px; overflow-y: auto; }
         .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; justify-content: space-between; transition: 0.2s; }
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: white; }
         
-        /* Main Editor */
-        .main { flex: 1; display: flex; flex-direction: column; }
+        /* Main Area */
+        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
 
+        /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 20px 5px; text-align: right; font-family: monospace; border-right: 1px solid rgba(255,255,255,0.1); font-size: 14px; line-height: 1.5; }
-        .input-area { flex: 1; position: relative; }
-        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 20px; border: 0; font-family: 'Consolas', 'Monaco', monospace; line-height: 1.5; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; font-size: 14px; }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 15px 5px; text-align: right; font-family: monospace; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; }
+        .input-area { flex: 1; position: relative; overflow: hidden; }
+        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 15px; border: 0; font-family: 'Consolas', monospace; line-height: 1.6; tab-size: 4; white-space: pre; box-sizing: border-box; overflow: auto; font-size: 14px; }
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Auth Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; }
-        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 320px; border: 1px solid var(--purple); text-align: center; }
-        .input-field { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
+        /* Modals */
+        .modal-overlay { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
+        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 350px; border: 1px solid var(--purple); }
+        .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
         
-        /* Syntax Colors */
+        /* Highlighting Classes */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: var(--green); }
+        .sk-bracket { color: var(--purple); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="auth-modal" class="modal-overlay">
     <div class="modal">
-        <h2 style="color:var(--purple); margin-top:0">Railway Cloud</h2>
+        <h2 id="auth-title" style="margin-top:0; color:var(--purple)">Welcome Back</h2>
         <input type="text" id="auth-user" class="input-field" placeholder="Username">
         <input type="password" id="auth-pass" class="input-field" placeholder="Password">
-        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleLogin()">LOGIN / REGISTER</button>
-        <p id="auth-status" style="font-size: 12px; color: var(--red); margin-top: 10px;"></p>
+        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleAuth()">LOGIN / SIGN UP</button>
+        <p id="auth-msg" style="font-size: 11px; color: var(--red); margin-top: 10px;"></p>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-brand">Skript IDE <small style="font-size: 10px; opacity: 0.5;">CLOUDV1</small></div>
-        <div style="padding: 15px;">
-            <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom:10px;">Offline</div>
+        <div class="sidebar-brand">Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small></div>
+        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
             <button class="tool-btn" style="width:100%" onclick="createNewProject()">+ NEW PROJECT</button>
         </div>
-        <div class="project-list" id="project-list"></div>
+        <div class="project-list" id="project-list">
+            </div>
+        <div style="padding: 15px; display:flex; gap:5px;">
+            <button class="tool-btn" style="flex:1" onclick="logout()">LOGOUT</button>
+        </div>
     </div>
 
     <div class="main">
         <div class="toolbar">
             <span id="current-filename" style="color: var(--purple); font-weight: bold;">No file open</span>
-            <button class="tool-btn" style="background: var(--green); color: black;" onclick="saveToCloud()">💾 SAVE TO CLOUD</button>
+            <div style="display:flex; gap:10px;">
+                <button class="tool-btn" onclick="saveCurrentProject()">💾 SAVE</button>
+                <button class="tool-btn" onclick="copyCode()">📋 COPY</button>
+            </div>
         </div>
         <div class="editor-container">
             <div id="gutter">1</div>
             <div class="input-area">
                 <pre id="highlighting"></pre>
-                <textarea id="editing" spellcheck="false" oninput="updateEditor()" onscroll="syncScroll()"></textarea>
+                <textarea id="editing" spellcheck="false" oninput="onEditorInput()" onscroll="syncScroll()"></textarea>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-    // --- SET YOUR RAILWAY URL HERE ---
-    const API_URL = "postgresql://postgres:hAWJlpCliLxvvjTkcIHbJBCvSrQIIRCb@maglev.pro.rlwy.net:36104/railway"; 
-
     const elInput = document.getElementById('editing');
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
-    
+    const elProjList = document.getElementById('project-list');
+
+    const dictionary = ["on join:", "on quit:", "command", "trigger:", "send", "set", "broadcast", "if", "else", "wait", "loop", "cancel event"];
+
+    let users = JSON.parse(localStorage.getItem('sk_users')) || {};
     let currentUser = null;
-    let userProjects = {};
-    let currentFileName = "";
+    let currentProjectId = null;
 
-    // AUTHENTICATION
-async function handleLogin() {
-    const u = document.getElementById('auth-user').value.trim();
-    const p = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status');
+    // --- AUTHENTICATION ---
+    function handleAuth() {
+        const u = document.getElementById('auth-user').value.trim();
+        const p = document.getElementById('auth-pass').value.trim();
+        if(!u || !p) return;
 
-    if (!u || !p) {
-        status.innerText = "Enter Username & Password";
-        return;
-    }
-
-    status.innerText = "Connecting...";
-
-    try {
-        const resp = await fetch(`${API_URL}/auth`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ u, p })
-        });
-
-        if (resp.ok) {
-            const data = await resp.json();
-            currentUser = data.username;
-            userProjects = data.projects;
-            
-            // Hide modal and show editor
-            document.getElementById('auth-modal').style.display = 'none';
-            document.getElementById('user-display').innerText = "Logged in: " + currentUser;
-            renderProjectList();
-            loadProject(Object.keys(userProjects)[0]);
+        if (users[u]) {
+            if (users[u].pass === p) login(u);
+            else document.getElementById('auth-msg').innerText = "Incorrect password!";
         } else {
-            const errorMsg = await resp.text();
-            status.innerText = "Login Failed: " + errorMsg;
+            users[u] = { pass: p, projects: { "main.sk": "on join:\n\tsend \"Hello!\"" } };
+            saveUsers();
+            login(u);
         }
-    } catch (e) {
-        status.innerText = "Error: Cannot reach Railway server.";
-        console.error(e);
     }
-}
-    // PROJECT MANAGEMENT
+
+    function login(username) {
+        currentUser = username;
+        document.getElementById('auth-modal').style.display = 'none';
+        document.getElementById('user-display').innerText = "User: " + username;
+        renderProjectList();
+        loadProject(Object.keys(users[username].projects)[0]);
+    }
+
+    function logout() {
+        location.reload();
+    }
+
+    function saveUsers() {
+        localStorage.setItem('sk_users', JSON.stringify(users));
+    }
+
+    // --- PROJECT MANAGEMENT ---
     function renderProjectList() {
-        const list = document.getElementById('project-list');
-        list.innerHTML = "";
-        Object.keys(userProjects).forEach(name => {
+        elProjList.innerHTML = "";
+        const projs = users[currentUser].projects;
+        Object.keys(projs).forEach(name => {
             const div = document.createElement('div');
-            div.className = `project-item ${currentFileName === name ? 'active' : ''}`;
-            div.innerText = "📄 " + name;
+            div.className = `project-item ${currentProjectId === name ? 'active' : ''}`;
+            div.innerHTML = `<span>📄 ${name}</span><span onclick="deleteProject('${name}', event)" style="color:var(--red)">×</span>`;
             div.onclick = () => loadProject(name);
-            list.appendChild(div);
+            elProjList.appendChild(div);
         });
     }
 
     function loadProject(name) {
         if(!name) return;
-        currentFileName = name;
-        elInput.value = userProjects[name];
+        currentProjectId = name;
+        elInput.value = users[currentUser].projects[name];
         document.getElementById('current-filename').innerText = name;
         updateEditor();
         renderProjectList();
     }
 
-    async function saveToCloud() {
-        if(!currentUser) return;
-        userProjects[currentFileName] = elInput.value;
-
-        const resp = await fetch(`${API_URL}/save`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ u: currentUser, projects: userProjects })
-        });
-
-        if(resp.ok) alert("Cloud Sync Success!");
+    function saveCurrentProject() {
+        if(!currentUser || !currentProjectId) return;
+        users[currentUser].projects[currentProjectId] = elInput.value;
+        saveUsers();
+        alert("Project Saved!");
     }
 
     function createNewProject() {
-        const name = prompt("Enter filename (e.g. script.sk):");
-        if(name && !userProjects[name]) {
-            userProjects[name] = "# New Skript File";
+        const name = prompt("Project Name (e.g., test.sk):");
+        if(name && !users[currentUser].projects[name]) {
+            users[currentUser].projects[name] = "# New Skript File";
+            saveUsers();
             loadProject(name);
-            saveToCloud();
         }
     }
 
-    // EDITOR LOGIC
+    function deleteProject(name, e) {
+        e.stopPropagation();
+        if(confirm(`Delete ${name}?`)) {
+            delete users[currentUser].projects[name];
+            saveUsers();
+            renderProjectList();
+            if(currentProjectId === name) loadProject(Object.keys(users[currentUser].projects)[0]);
+        }
+    }
+
+    // --- EDITOR LOGIC ---
+    elInput.addEventListener('keydown', function(e) {
+        const start = this.selectionStart;
+        const val = this.value;
+
+        // Auto-Indentation (Bonuses)
+        if (e.key === 'Enter') {
+            const line = val.substring(0, start).split('\n').pop();
+            if (line.trim().endsWith(':')) {
+                e.preventDefault();
+                const tabs = line.match(/^\t*/)[0];
+                this.value = val.substring(0, start) + "\n" + tabs + "\t" + val.substring(start);
+                this.selectionStart = this.selectionEnd = start + tabs.length + 2;
+                onEditorInput();
+            }
+        }
+
+        // Bracket Pairs
+        const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
+        if (pairs[e.key]) {
+            e.preventDefault();
+            this.value = val.substring(0, start) + e.key + pairs[e.key] + val.substring(this.selectionEnd);
+            this.selectionStart = this.selectionEnd = start + 1;
+            onEditorInput();
+        }
+
+        // Tab Autocomplete
+        if (e.key === 'Tab') {
+            const lastWord = val.substring(0, start).split(/[\s\n\t]+/).pop();
+            const match = dictionary.find(w => w.startsWith(lastWord.toLowerCase()));
+            if (match && lastWord.length > 1) {
+                e.preventDefault();
+                const wordStart = start - lastWord.length;
+                this.value = val.substring(0, wordStart) + match + val.substring(this.selectionEnd);
+                this.selectionStart = this.selectionEnd = wordStart + match.length;
+                onEditorInput();
+            }
+        }
+    });
+
+    function onEditorInput() {
+        updateEditor();
+    }
+
     function updateEditor() {
         let code = elInput.value;
         elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
-        
+
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
+        h = h.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        h = h.replace(/\b(send|broadcast|set|add|if|else|loop|wait|stop|command|trigger)\b/g, '<span class="sk-effect">$1</span>');
-        
+        h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
+        const kw = /\b(send|broadcast|set|add|if|else|loop|wait|stop|command|trigger)\b/g;
+        h = h.replace(kw, '<span class="sk-effect">$1</span>');
+
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
     }
 
@@ -198,16 +250,10 @@ async function handleLogin() {
         elOutput.scrollLeft = elInput.scrollLeft;
     }
 
-    // Handle Tab Indents
-    elInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const start = this.selectionStart;
-            this.value = this.value.substring(0, start) + "\t" + this.value.substring(this.selectionEnd);
-            this.selectionStart = this.selectionEnd = start + 1;
-            updateEditor();
-        }
-    });
+    function copyCode() {
+        navigator.clipboard.writeText(elInput.value);
+        alert("Code copied to clipboard!");
+    }
 </script>
 </body>
 </html>
