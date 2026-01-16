@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Autosave & Syntax</title>
+    <title>Skript IDE Pro - Smart Indent</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -90,7 +90,7 @@
     <div class="sidebar">
         <div class="sidebar-brand">
             Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small>
-            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Autosave Enabled</div>
+            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Smart Indent v2</div>
         </div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
@@ -209,11 +209,8 @@
         if(!currentUser || !currentProjectId) return;
         users[currentUser].projects[currentProjectId] = elInput.value;
         saveUsers();
-        
-        // Update Status Bar
         elSaveStatus.innerText = "All changes saved";
         elSaveStatus.style.color = "var(--green)";
-        
         if(!silent) alert("Project Saved!");
     }
 
@@ -250,20 +247,16 @@
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trimmed = line.trim();
-            const indent = line.search(/\S|$/); // Count leading whitespace
+            const indent = line.search(/\S|$/); 
             
             if (trimmed === "" || trimmed.startsWith("#")) continue;
 
-            // Rule 1: Missing Colon
-            // Keywords that usually require a colon at the end
             if (/^(command|trigger|if|else|loop|while|function|on \w+|options|variables)/.test(trimmed)) {
                 if (!trimmed.endsWith(":")) {
                     errors.push({line: i + 1, msg: "Possible missing colon ':' at end of line."});
                 }
             }
 
-            // Rule 2: Indentation Logic
-            // If the previous line ended with ':', this line must be indented more
             if (i > 0) {
                 const prevLine = lines[i-1];
                 const prevTrimmed = prevLine.trim();
@@ -273,14 +266,11 @@
                      errors.push({line: i + 1, msg: "Indentation error. This line should be indented further than line " + i});
                 }
             }
-            
-            // Rule 3: Common Variable Mistake
             if (trimmed.includes("set %") || trimmed.includes("add %")) {
                  errors.push({line: i + 1, msg: "Incorrect variable usage. Use {var} instead of %var% in effects."});
             }
         }
 
-        // Render Results
         results.innerHTML = "";
         if (errors.length === 0) {
             results.innerHTML = `<div class="success-msg">✅ No basic errors found!</div>`;
@@ -293,24 +283,52 @@
                 `;
             });
         }
-        
         modal.style.display = "flex";
     }
 
-    // --- EDITOR LOGIC ---
+    // --- EDITOR LOGIC (IMPROVED INDENTATION) ---
     elInput.addEventListener('keydown', function(e) {
         const start = this.selectionStart;
         const val = this.value;
 
+        // --- IMPROVED AUTO-INDENTATION ---
         if (e.key === 'Enter') {
-            const line = val.substring(0, start).split('\n').pop();
-            if (line.trim().endsWith(':')) {
-                e.preventDefault();
-                const tabs = line.match(/^\t*/)[0];
-                this.value = val.substring(0, start) + "\n" + tabs + "\t" + val.substring(start);
-                this.selectionStart = this.selectionEnd = start + tabs.length + 2;
-                onEditorInput();
+            e.preventDefault();
+            
+            // 1. Get the current line up to the cursor
+            const lastNewLine = val.lastIndexOf('\n', start - 1);
+            const lineStart = lastNewLine + 1;
+            const currentLine = val.substring(lineStart, start);
+            
+            // 2. Find current indentation (tabs/spaces at start of line)
+            const match = currentLine.match(/^\s*/);
+            const currentIndent = match ? match[0] : "";
+            
+            // 3. Check if we need to add EXTRA indentation (ends with :)
+            const trimmedLine = currentLine.trim();
+            let extraIndent = "";
+            if (trimmedLine.endsWith(':') || trimmedLine.endsWith('{')) {
+                extraIndent = "\t";
             }
+            
+            // 4. Construct the insertion
+            const insertion = "\n" + currentIndent + extraIndent;
+            
+            // 5. Insert
+            this.value = val.substring(0, start) + insertion + val.substring(this.selectionEnd);
+            
+            // 6. Move cursor
+            this.selectionStart = this.selectionEnd = start + insertion.length;
+            
+            // 7. Scroll adjustment (optional but good)
+            const lineHeight = 22; // approx px
+            const currentLineNum = val.substr(0, start).split("\n").length;
+            if (currentLineNum * lineHeight > this.scrollTop + this.clientHeight) {
+                this.scrollTop += lineHeight;
+            }
+
+            onEditorInput();
+            return; // Stop processing 'Enter' here
         }
 
         const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
