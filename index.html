@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Skript-GUI Edition</title>
+    <title>Skript IDE Pro - Autosave & Syntax</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
             --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; 
             --orange: #ffb86c; --red: #ff5555; --yellow: #f1fa8c;
-            --blue: #61afef; /* Addon Color */
-            --gui-gold: #e5c07b; /* Specific color for GUI logic */
+            --blue: #61afef; --gui-gold: #e5c07b;
         }
         
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
@@ -28,8 +27,14 @@
         /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
-        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
+        .tool-btn:hover { background: rgba(255,255,255,0.1); }
+        .btn-green { color: var(--green); border-color: var(--green); }
+        .btn-yellow { color: var(--yellow); border-color: var(--yellow); }
 
+        /* Status Bar */
+        .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); justify-content: space-between;}
+        
         /* Editor */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
         #gutter { width: 45px; background: var(--sidebar); color: var(--comment); padding: 15px 5px; text-align: right; font-family: monospace; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; }
@@ -39,10 +44,15 @@
         #highlighting { z-index: 2; pointer-events: none; }
 
         /* Modals */
-        .modal-overlay { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
-        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 350px; border: 1px solid var(--purple); }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
+        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 400px; border: 1px solid var(--purple); max-height: 80vh; overflow-y: auto; }
         .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
         
+        /* Syntax Check Styles */
+        .error-item { background: rgba(255, 85, 85, 0.1); border-left: 3px solid var(--red); padding: 10px; margin-bottom: 8px; font-size: 12px; }
+        .error-line { font-weight: bold; color: var(--red); }
+        .success-msg { color: var(--green); text-align: center; padding: 20px; font-weight: bold; }
+
         /* Highlighting Classes */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
@@ -51,14 +61,14 @@
         .sk-string { color: var(--green); }
         .sk-bracket { color: var(--purple); font-weight: bold; }
         .sk-addon { color: var(--blue); font-style: italic; } 
-        .sk-gui { color: var(--gui-gold); font-weight: bold; } /* New Skript-GUI specific */
+        .sk-gui { color: var(--gui-gold); font-weight: bold; }
         
         .addon-badge { background: var(--gui-gold); color: #000; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-left: 10px; }
     </style>
 </head>
 <body>
 
-<div id="auth-modal" class="modal-overlay">
+<div id="auth-modal" class="modal-overlay" style="display:flex;">
     <div class="modal">
         <h2 id="auth-title" style="margin-top:0; color:var(--purple)">Welcome Back</h2>
         <input type="text" id="auth-user" class="input-field" placeholder="Username">
@@ -68,11 +78,19 @@
     </div>
 </div>
 
+<div id="syntax-modal" class="modal-overlay">
+    <div class="modal">
+        <h2 style="margin-top:0; color:var(--yellow)">Syntax Report</h2>
+        <div id="syntax-results"></div>
+        <button class="tool-btn" style="width:100%; margin-top:15px;" onclick="document.getElementById('syntax-modal').style.display='none'">CLOSE</button>
+    </div>
+</div>
+
 <div class="container">
     <div class="sidebar">
         <div class="sidebar-brand">
             Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small>
-            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Skript-GUI Ready</div>
+            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Autosave Enabled</div>
         </div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
@@ -92,16 +110,23 @@
                 <span id="addon-indicator" class="addon-badge" style="display:none;">GUI MODE</span>
             </div>
             <div style="display:flex; gap:10px;">
-                <button class="tool-btn" onclick="saveCurrentProject()">💾 SAVE</button>
+                <button class="tool-btn btn-yellow" onclick="runSyntaxCheck()">⚠️ CHECK SYNTAX</button>
+                <button class="tool-btn btn-green" onclick="saveCurrentProject(false)">💾 SAVE</button>
                 <button class="tool-btn" onclick="copyCode()">📋 COPY</button>
             </div>
         </div>
+        
         <div class="editor-container">
             <div id="gutter">1</div>
             <div class="input-area">
                 <pre id="highlighting"></pre>
                 <textarea id="editing" spellcheck="false" oninput="onEditorInput()" onscroll="syncScroll()"></textarea>
             </div>
+        </div>
+
+        <div class="status-bar">
+            <span id="save-status">All changes saved</span>
+            <span id="cursor-pos">Ln 1, Col 1</span>
         </div>
     </div>
 </div>
@@ -111,57 +136,16 @@
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
     const elProjList = document.getElementById('project-list');
+    const elSaveStatus = document.getElementById('save-status');
+
+    let saveTimer; // Timer for autosave
 
     // --- SYNTAX DATABASE ---
     const syntaxDB = {
-        // Massive Core Update
-        core: [
-            // Basic Structure
-            "command", "trigger:", "function", "return", "options:", "variables:", "aliases:",
-            // Events
-            "on join:", "on quit:", "on load:", "on unload:", "on skript load:", "on damage:", "on death:", 
-            "on rightclick:", "on leftclick:", "on place:", "on break:", "on chat:", "on command:", 
-            "on drop:", "on pickup:", "on consume:", "on respawn:", "on connect:", "on disconnect:",
-            // Effects
-            "send", "broadcast", "set", "add", "remove", "delete", "clear", "wait", "stop", "cancel event", 
-            "apply", "teleport", "give", "drop", "spawn", "kill", "damage", "heal", "repair", "execute console command", "make player execute",
-            // Logic/Loops
-            "if", "else", "else if", "while", "loop", "loop-player", "loop-value", "loop-index", "loop-entity", "continue", "exit",
-            // Expressions
-            "arg-1", "arg-2", "player", "victim", "attacker", "event-block", "event-location", "event-item", "uuid", "name of", 
-            "distance between", "location of", "metadata", "now", "unix timestamp", "health of", "max health of"
-        ],
-        
-        // Specialized Skript-GUI Support
-        skriptgui: [
-            // Creation
-            "create a gui with virtual chest inventory", "create a gui with virtual hopper inventory", "create a gui with virtual dropper inventory",
-            "open last created gui", "open the last created gui", "edit gui", "edit last created gui", 
-            // Slots
-            "make gui slot", "make next gui slot", "format gui slot",
-            // Sections & Actions
-            "to run:", "to close:", "to do nothing", "unstealable", "to nothing",
-            // Properties
-            "gui-inventory", "gui-slot", "gui-click-type", "gui-cursor", "gui-item", "gui-name", 
-            "run function", "from function",
-            // Shapes (if using shapes feature)
-            "change gui shape"
-        ],
-
-        // General Addon Support
-        addons: [
-            // SkBee
-            "nbt compound", "nbt list", "set nbt", "spawn armor stand", "update score", "create team", 
-            // SkQuery / TuSKe (Legacy)
-            "open virtual chest", "format slot", "open gui",
-            // Vixio / Discord
-            "login to discord", "create embed", "send message", "reply with",
-            // Generic
-            "offline player", "permission", "parse", "replace", "contains"
-        ]
+        core: ["command", "trigger:", "function", "return", "options:", "variables:", "aliases:", "on join:", "on quit:", "on load:", "on unload:", "on skript load:", "on damage:", "on death:", "on rightclick:", "on leftclick:", "on place:", "on break:", "on chat:", "on command:", "on drop:", "on pickup:", "on consume:", "on respawn:", "on connect:", "on disconnect:", "send", "broadcast", "set", "add", "remove", "delete", "clear", "wait", "stop", "cancel event", "apply", "teleport", "give", "drop", "spawn", "kill", "damage", "heal", "repair", "execute console command", "make player execute", "if", "else", "else if", "while", "loop", "loop-player", "loop-value", "loop-index", "loop-entity", "continue", "exit", "arg-1", "arg-2", "player", "victim", "attacker", "event-block", "event-location", "event-item", "uuid", "name of", "distance between", "location of", "metadata", "now", "unix timestamp", "health of", "max health of"],
+        skriptgui: ["create a gui with virtual chest inventory", "create a gui with virtual hopper inventory", "create a gui with virtual dropper inventory", "open last created gui", "open the last created gui", "edit gui", "edit last created gui", "make gui slot", "make next gui slot", "format gui slot", "to run:", "to close:", "to do nothing", "unstealable", "to nothing", "gui-inventory", "gui-slot", "gui-click-type", "gui-cursor", "gui-item", "gui-name", "run function", "from function", "change gui shape"],
+        addons: ["nbt compound", "nbt list", "set nbt", "spawn armor stand", "update score", "create team", "open virtual chest", "format slot", "open gui", "login to discord", "create embed", "send message", "reply with", "offline player", "permission", "parse", "replace", "contains"]
     };
-
-    // Flatten for Autocomplete
     const dictionary = [...syntaxDB.core, ...syntaxDB.skriptgui, ...syntaxDB.addons];
 
     let users = JSON.parse(localStorage.getItem('sk_users')) || {};
@@ -173,12 +157,11 @@
         const u = document.getElementById('auth-user').value.trim();
         const p = document.getElementById('auth-pass').value.trim();
         if(!u || !p) return;
-
         if (users[u]) {
             if (users[u].pass === p) login(u);
             else document.getElementById('auth-msg').innerText = "Incorrect password!";
         } else {
-            users[u] = { pass: p, projects: { "gui-test.sk": "command /gui:\n\ttrigger:\n\t\tcreate a gui with virtual chest inventory with 3 rows named \"&8Menu\":\n\t\t\tmake gui slot 13 with diamond named \"&bClick Me\":\n\t\t\t\tto run:\n\t\t\t\t\tsend \"Clicked!\"\n\t\t\t\t\tclose player's inventory\n\t\topen the last created gui to player" } };
+            users[u] = { pass: p, projects: { "gui-test.sk": "command /gui:\n\ttrigger:\n\t\tcreate a gui with virtual chest inventory with 3 rows named \"&8Menu\":\n\t\t\tmake gui slot 13 with diamond named \"&bClick Me\":\n\t\t\t\tto run:\n\t\t\t\t\tsend \"Clicked!\"\n\t\topen the last created gui to player" } };
             saveUsers();
             login(u);
         }
@@ -222,11 +205,16 @@
         renderProjectList();
     }
 
-    function saveCurrentProject() {
+    function saveCurrentProject(silent = false) {
         if(!currentUser || !currentProjectId) return;
         users[currentUser].projects[currentProjectId] = elInput.value;
         saveUsers();
-        alert("Project Saved!");
+        
+        // Update Status Bar
+        elSaveStatus.innerText = "All changes saved";
+        elSaveStatus.style.color = "var(--green)";
+        
+        if(!silent) alert("Project Saved!");
     }
 
     function createNewProject() {
@@ -252,15 +240,70 @@
         }
     }
 
+    // --- SYNTAX CHECKER ---
+    function runSyntaxCheck() {
+        const lines = elInput.value.split('\n');
+        const errors = [];
+        const modal = document.getElementById('syntax-modal');
+        const results = document.getElementById('syntax-results');
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+            const indent = line.search(/\S|$/); // Count leading whitespace
+            
+            if (trimmed === "" || trimmed.startsWith("#")) continue;
+
+            // Rule 1: Missing Colon
+            // Keywords that usually require a colon at the end
+            if (/^(command|trigger|if|else|loop|while|function|on \w+|options|variables)/.test(trimmed)) {
+                if (!trimmed.endsWith(":")) {
+                    errors.push({line: i + 1, msg: "Possible missing colon ':' at end of line."});
+                }
+            }
+
+            // Rule 2: Indentation Logic
+            // If the previous line ended with ':', this line must be indented more
+            if (i > 0) {
+                const prevLine = lines[i-1];
+                const prevTrimmed = prevLine.trim();
+                const prevIndent = prevLine.search(/\S|$/);
+                
+                if (prevTrimmed.endsWith(":") && indent <= prevIndent && prevTrimmed.length > 0) {
+                     errors.push({line: i + 1, msg: "Indentation error. This line should be indented further than line " + i});
+                }
+            }
+            
+            // Rule 3: Common Variable Mistake
+            if (trimmed.includes("set %") || trimmed.includes("add %")) {
+                 errors.push({line: i + 1, msg: "Incorrect variable usage. Use {var} instead of %var% in effects."});
+            }
+        }
+
+        // Render Results
+        results.innerHTML = "";
+        if (errors.length === 0) {
+            results.innerHTML = `<div class="success-msg">✅ No basic errors found!</div>`;
+        } else {
+            errors.forEach(err => {
+                results.innerHTML += `
+                    <div class="error-item">
+                        <span class="error-line">Line ${err.line}:</span> ${err.msg}
+                    </div>
+                `;
+            });
+        }
+        
+        modal.style.display = "flex";
+    }
+
     // --- EDITOR LOGIC ---
     elInput.addEventListener('keydown', function(e) {
         const start = this.selectionStart;
         const val = this.value;
 
-        // Auto-Indentation (Enhanced for GUI sections like 'to run:')
         if (e.key === 'Enter') {
             const line = val.substring(0, start).split('\n').pop();
-            // Indent if line ends with :
             if (line.trim().endsWith(':')) {
                 e.preventDefault();
                 const tabs = line.match(/^\t*/)[0];
@@ -278,7 +321,6 @@
             onEditorInput();
         }
 
-        // Tab Autocomplete
         if (e.key === 'Tab') {
             e.preventDefault();
             const lastWord = val.substring(0, start).split(/[\s\n\t]+/).pop();
@@ -298,10 +340,25 @@
                 this.selectionStart = this.selectionEnd = start + 1;
             }
         }
+        
+        // Update Cursor Position Display
+        setTimeout(() => {
+            const lines = val.substr(0, this.selectionStart).split("\n");
+            document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
+        }, 10);
     });
 
     function onEditorInput() {
         updateEditor();
+        
+        // AUTOSAVE LOGIC
+        elSaveStatus.innerText = "Unsaved changes...";
+        elSaveStatus.style.color = "var(--orange)";
+        
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            saveCurrentProject(true); // Silent save
+        }, 2000); // 2 seconds debounce
     }
 
     function updateEditor() {
@@ -310,37 +367,25 @@
 
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-        // 1. Strings
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
-
-        // 2. Comments
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
-
-        // 3. Variables
         h = h.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
-
-        // 4. Events
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
 
-        // 5. Core Keywords (Sorted by length to prevent partial matches)
         const coreSorted = syntaxDB.core.sort((a,b) => b.length - a.length);
         const coreRegex = new RegExp(`\\b(${coreSorted.map(k => k.replace(/[^a-zA-Z0-9\-]/g, '\\$&')).join('|')})\\b`, 'g');
         h = h.replace(coreRegex, '<span class="sk-effect">$1</span>');
 
-        // 6. Skript-GUI Highlighting (Gold)
         const guiSorted = syntaxDB.skriptgui.sort((a,b) => b.length - a.length);
-        const guiRegex = new RegExp(`\\b(${guiSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})`, 'g'); // Removed trailing \b for colons
+        const guiRegex = new RegExp(`\\b(${guiSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})`, 'g');
         h = h.replace(guiRegex, '<span class="sk-gui">$1</span>');
 
-        // 7. Other Addons (Blue)
         const addonSorted = syntaxDB.addons.sort((a,b) => b.length - a.length);
         const addonRegex = new RegExp(`\\b(${addonSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})\\b`, 'g');
         h = h.replace(addonRegex, '<span class="sk-addon">$1</span>');
         
-        // 8. Brackets
         h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
 
-        // Check for GUI usage for the badge
         const hasGui = guiSorted.some(k => code.includes(k));
         document.getElementById('addon-indicator').style.display = hasGui ? 'inline-block' : 'none';
 
