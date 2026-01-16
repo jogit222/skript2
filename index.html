@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Precision Fixed</title>
+    <title>Skript IDE Pro - Advanced Syntax</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -32,53 +32,45 @@
         .btn-yellow { color: var(--yellow); border-color: var(--yellow); }
         .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); justify-content: space-between;}
         
-        /* --- EDITOR CORE FIXES --- */
+        /* Editor Precision Fixes */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
         
-        /* Common styles to ensure perfect alignment */
         .code-font {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; /* Exact same font stack */
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
-            line-height: 16px; /* FIXED PIXEL HEIGHT - Prevents drift */
+            line-height: 24px;
         }
 
         #gutter { 
-            width: 45px; 
-            background: var(--sidebar); 
-            color: var(--comment); 
-            padding: 15px 5px; /* Top padding must match editor */
-            text-align: right; 
-            border-right: 1px solid rgba(255,255,255,0.1); 
-            user-select: none;
-            box-sizing: border-box; /* Ensures padding doesn't affect calculation */
+            width: 45px; background: var(--sidebar); color: var(--comment); 
+            padding: 15px 5px; text-align: right; border-right: 1px solid rgba(255,255,255,0.1); 
+            user-select: none; box-sizing: border-box; 
         }
 
         .input-area { flex: 1; position: relative; overflow: hidden; }
 
         #editing, #highlighting { 
-            position: absolute; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            margin: 0; 
-            padding: 15px; /* Top padding must match gutter */
-            border: 0; 
-            tab-size: 4; 
-            white-space: pre; 
-            box-sizing: border-box; 
-            overflow: auto; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            margin: 0; padding: 15px; border: 0; tab-size: 4; white-space: pre; 
+            box-sizing: border-box; overflow: auto; 
         }
 
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Modals and Highlighting Colors (Same as before) */
+        /* Modals & Syntax Report */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
-        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 400px; border: 1px solid var(--purple); max-height: 80vh; overflow-y: auto; }
+        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; }
         .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
+        
+        .syntax-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .error-item { background: rgba(255, 85, 85, 0.1); border-left: 3px solid var(--red); padding: 10px; margin-bottom: 8px; font-size: 12px; }
-        .error-line { font-weight: bold; color: var(--red); }
-        .success-msg { color: var(--green); text-align: center; padding: 20px; font-weight: bold; }
+        .warning-item { background: rgba(241, 250, 140, 0.1); border-left: 3px solid var(--yellow); padding: 10px; margin-bottom: 8px; font-size: 12px; }
+        .error-line { font-weight: bold; color: var(--red); display: inline-block; width: 60px; }
+        .warning-line { font-weight: bold; color: var(--yellow); display: inline-block; width: 60px; }
+        .success-msg { color: var(--green); text-align: center; padding: 20px; font-weight: bold; font-size: 16px; }
 
+        /* Syntax Highlighting */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
@@ -93,7 +85,7 @@
 <body>
 
 <div id="auth-modal" class="modal-overlay" style="display:flex;">
-    <div class="modal">
+    <div class="modal" style="width: 350px;">
         <h2 id="auth-title" style="margin-top:0; color:var(--purple)">Welcome Back</h2>
         <input type="text" id="auth-user" class="input-field" placeholder="Username">
         <input type="password" id="auth-pass" class="input-field" placeholder="Password">
@@ -104,9 +96,12 @@
 
 <div id="syntax-modal" class="modal-overlay">
     <div class="modal">
-        <h2 style="margin-top:0; color:var(--yellow)">Syntax Report</h2>
-        <div id="syntax-results"></div>
-        <button class="tool-btn" style="width:100%; margin-top:15px;" onclick="document.getElementById('syntax-modal').style.display='none'">CLOSE</button>
+        <div class="syntax-header">
+            <h2 style="margin:0; color:var(--fg)">Syntax Report</h2>
+            <div id="syntax-score" style="font-weight:bold; color:var(--purple)"></div>
+        </div>
+        <div id="syntax-results" style="flex:1; overflow-y:auto;"></div>
+        <button class="tool-btn" style="width:100%; margin-top:15px;" onclick="document.getElementById('syntax-modal').style.display='none'">CLOSE REPORT</button>
     </div>
 </div>
 
@@ -114,7 +109,7 @@
     <div class="sidebar">
         <div class="sidebar-brand">
             Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small>
-            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Precision Engine</div>
+            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Advanced Linter</div>
         </div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
@@ -163,6 +158,7 @@
 
     let saveTimer; 
 
+    // Syntax Definitions
     const syntaxDB = {
         core: ["command", "trigger:", "function", "return", "options:", "variables:", "aliases:", "on join:", "on quit:", "on load:", "on unload:", "on skript load:", "on damage:", "on death:", "on rightclick:", "on leftclick:", "on place:", "on break:", "on chat:", "on command:", "on drop:", "on pickup:", "on consume:", "on respawn:", "on connect:", "on disconnect:", "send", "broadcast", "set", "add", "remove", "delete", "clear", "wait", "stop", "cancel event", "apply", "teleport", "give", "drop", "spawn", "kill", "damage", "heal", "repair", "execute console command", "make player execute", "if", "else", "else if", "while", "loop", "loop-player", "loop-value", "loop-index", "loop-entity", "continue", "exit", "arg-1", "arg-2", "player", "victim", "attacker", "event-block", "event-location", "event-item", "uuid", "name of", "distance between", "location of", "metadata", "now", "unix timestamp", "health of", "max health of"],
         skriptgui: ["create a gui with virtual chest inventory", "create a gui with virtual hopper inventory", "create a gui with virtual dropper inventory", "open last created gui", "open the last created gui", "edit gui", "edit last created gui", "make gui slot", "make next gui slot", "format gui slot", "to run:", "to close:", "to do nothing", "unstealable", "to nothing", "gui-inventory", "gui-slot", "gui-click-type", "gui-cursor", "gui-item", "gui-name", "run function", "from function", "change gui shape"],
@@ -174,6 +170,7 @@
     let currentUser = null;
     let currentProjectId = null;
 
+    // --- AUTH ---
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         const p = document.getElementById('auth-pass').value.trim();
@@ -195,10 +192,10 @@
         renderProjectList();
         loadProject(Object.keys(users[username].projects)[0]);
     }
-
     function logout() { location.reload(); }
     function saveUsers() { localStorage.setItem('sk_users', JSON.stringify(users)); }
 
+    // --- PROJECT ---
     function renderProjectList() {
         elProjList.innerHTML = "";
         const projs = users[currentUser].projects;
@@ -252,39 +249,125 @@
         }
     }
 
+    // --- ADVANCED SYNTAX CHECKER ---
     function runSyntaxCheck() {
         const lines = elInput.value.split('\n');
         const errors = [];
-        const modal = document.getElementById('syntax-modal');
-        const results = document.getElementById('syntax-results');
+        const warnings = [];
+        
+        let context = {
+            inLoop: false,
+            loopDepth: 0,
+            inTrigger: false,
+            combatContext: false, // For attacker/victim
+            commandDef: null
+        };
+        
+        // Check for mixing GUI addons
+        const code = elInput.value;
+        if(code.includes("format slot") && code.includes("make gui slot")) {
+            warnings.push({line: "-", msg: "Legacy Warning: You are mixing TuSKe ('format slot') and Skript-GUI ('make gui slot'). This often causes conflicts."});
+        }
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const trimmed = line.trim();
-            const indent = line.search(/\S|$/); 
+            const indentLvl = line.search(/\S|$/); // whitespace count
+            
             if (trimmed === "" || trimmed.startsWith("#")) continue;
+
+            // 1. Basic Formatting
             if (/^(command|trigger|if|else|loop|while|function|on \w+|options|variables)/.test(trimmed)) {
-                if (!trimmed.endsWith(":")) errors.push({line: i + 1, msg: "Possible missing colon ':' at end of line."});
+                if (!trimmed.endsWith(":")) errors.push({line: i + 1, msg: "Missing colon ':' at end of line."});
             }
+
+            // 2. Indentation Logic (Reset context on root level)
+            if (indentLvl === 0) {
+                context.loopDepth = 0;
+                context.inTrigger = false;
+                context.combatContext = false;
+                context.commandDef = null;
+            }
+
+            // 3. Command Structure
+            if (trimmed.startsWith("command /")) {
+                context.commandDef = i;
+            }
+            if (trimmed.startsWith("trigger:")) {
+                context.inTrigger = true;
+                context.commandDef = null; // Trigger found, safe
+            }
+
+            // 4. Combat Context
+            if (trimmed.startsWith("on damage") || trimmed.startsWith("on death")) {
+                context.combatContext = true;
+            }
+            if ((trimmed.includes("attacker") || trimmed.includes("victim")) && !context.combatContext) {
+                 warnings.push({line: i + 1, msg: "Context Error: 'attacker'/'victim' used outside of a combat event (on damage/death)."});
+            }
+
+            // 5. Loop Context
+            if (trimmed.startsWith("loop ") || trimmed.startsWith("while ")) {
+                context.loopDepth++;
+            }
+            if ((trimmed.includes("loop-player") || trimmed.includes("loop-value") || trimmed.includes("loop-index")) && context.loopDepth === 0) {
+                errors.push({line: i + 1, msg: "Logic Error: You are using loop values outside of a loop block."});
+            }
+
+            // 6. Type Logic
+            if (trimmed.includes("add ") && trimmed.includes("\"") && trimmed.includes(" to ") && !trimmed.includes("::")) {
+                 // Trying to add text to a variable usually requires list variable (::)
+                 if(!trimmed.includes("message") && !trimmed.includes("broadcast")) {
+                    warnings.push({line: i + 1, msg: "Type Safety: Adding text to a scalar variable? Did you mean 'set' or use a list variable {var::*}?"});
+                 }
+            }
+            
+            // 7. Indentation Continuity
             if (i > 0) {
                 const prevLine = lines[i-1];
                 const prevTrimmed = prevLine.trim();
                 const prevIndent = prevLine.search(/\S|$/);
-                if (prevTrimmed.endsWith(":") && indent <= prevIndent && prevTrimmed.length > 0) {
-                     errors.push({line: i + 1, msg: "Indentation error. This line should be indented further than line " + i});
+                if (prevTrimmed.endsWith(":") && indentLvl <= prevIndent && prevTrimmed.length > 0 && !prevTrimmed.startsWith("#")) {
+                     errors.push({line: i + 1, msg: "Indentation Error: Expected indented block after line " + i});
                 }
             }
-            if (trimmed.includes("set %") || trimmed.includes("add %")) errors.push({line: i + 1, msg: "Incorrect variable usage. Use {var} instead of %var%."});
+        }
+        
+        // Post-Loop Check: Command without trigger
+        if (context.commandDef !== null) {
+            errors.push({line: context.commandDef + 1, msg: "Structure Error: Command defined but no 'trigger:' section found."});
         }
 
+        renderSyntaxReport(errors, warnings);
+    }
+
+    function renderSyntaxReport(errors, warnings) {
+        const modal = document.getElementById('syntax-modal');
+        const results = document.getElementById('syntax-results');
+        const scoreDiv = document.getElementById('syntax-score');
+        
         results.innerHTML = "";
-        if (errors.length === 0) results.innerHTML = `<div class="success-msg">✅ No basic errors found!</div>`;
-        else errors.forEach(err => {
-            results.innerHTML += `<div class="error-item"><span class="error-line">Line ${err.line}:</span> ${err.msg}</div>`;
-        });
+        
+        if (errors.length === 0 && warnings.length === 0) {
+            results.innerHTML = `<div class="success-msg">✅ Perfect! No errors found.</div>`;
+            scoreDiv.innerText = "Status: STABLE";
+            scoreDiv.style.color = "var(--green)";
+        } else {
+            const score = Math.max(0, 100 - (errors.length * 10) - (warnings.length * 5));
+            scoreDiv.innerText = `Health: ${score}%`;
+            scoreDiv.style.color = score > 80 ? "var(--green)" : score > 50 ? "var(--yellow)" : "var(--red)";
+
+            errors.forEach(err => {
+                results.innerHTML += `<div class="error-item"><span class="error-line">Line ${err.line}</span> ${err.msg}</div>`;
+            });
+            warnings.forEach(warn => {
+                results.innerHTML += `<div class="warning-item"><span class="warning-line">Line ${warn.line}</span> ${warn.msg}</div>`;
+            });
+        }
         modal.style.display = "flex";
     }
 
+    // --- EDITOR CORE ---
     elInput.addEventListener('keydown', function(e) {
         const start = this.selectionStart;
         const val = this.value;
@@ -304,7 +387,7 @@
             this.value = val.substring(0, start) + insertion + val.substring(this.selectionEnd);
             this.selectionStart = this.selectionEnd = start + insertion.length;
             
-            const lineHeight = 24; // Updated to match CSS
+            const lineHeight = 24; 
             const currentLineNum = val.substr(0, start).split("\n").length;
             if (currentLineNum * lineHeight > this.scrollTop + this.clientHeight) this.scrollTop += lineHeight;
             onEditorInput();
@@ -355,7 +438,6 @@
 
     function updateEditor() {
         let code = elInput.value;
-        // Fix blank line issue at end by adding invisible space so gutter counts it
         elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
 
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
