@@ -97,34 +97,31 @@
     let currentFileName = "";
 
     // AUTHENTICATION
-    async function handleLogin() {
-        const u = document.getElementById('auth-user').value.toLowerCase().trim();
-        const p = document.getElementById('auth-pass').value;
-        if(!u || !p) return;
+async function handleLogin() {
+    const u = document.getElementById('auth-user').value;
+    const p = document.getElementById('auth-pass').value;
 
-        try {
-            const resp = await fetch(`${API_URL}/auth`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ u, p })
-            });
+    try {
+        const resp = await fetch(`${API_URL}/auth`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ u, p })
+        });
 
-            if (resp.ok) {
-                const data = await resp.json();
-                currentUser = u;
-                userProjects = data.projects;
-                document.getElementById('auth-modal').style.display = 'none';
-                document.getElementById('user-display').innerText = "Logged in: " + u;
-                renderProjectList();
-                loadProject(Object.keys(userProjects)[0]);
-            } else {
-                document.getElementById('auth-status').innerText = "Invalid Password!";
-            }
-        } catch (e) {
-            document.getElementById('auth-status').innerText = "Server Unreachable!";
+        if (resp.ok) {
+            const data = await resp.json();
+            currentUser = data.username;
+            userProjects = data.projects; // This is now a clean object
+            document.getElementById('auth-modal').style.display = 'none';
+            renderProjectList();
+            loadProject(Object.keys(userProjects)[0]);
+        } else {
+            alert("Login Failed. Check password.");
         }
+    } catch (e) {
+        alert("Cannot connect to Railway. Check if server is sleeping.");
     }
-
+}
     // PROJECT MANAGEMENT
     function renderProjectList() {
         const list = document.getElementById('project-list');
