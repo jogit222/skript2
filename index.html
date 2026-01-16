@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Advanced Syntax</title>
+    <title>Skript IDE Pro - Sync Fixed</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -16,7 +16,7 @@
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar & Layout */
+        /* Sidebar */
         .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
         .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .project-list { flex: 1; padding: 10px; overflow-y: auto; }
@@ -24,6 +24,7 @@
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: white; }
         
+        /* Main */
         .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
@@ -32,13 +33,16 @@
         .btn-yellow { color: var(--yellow); border-color: var(--yellow); }
         .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); justify-content: space-between;}
         
-        /* Editor Precision Fixes */
+        /* --- EDITOR FIXES --- */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
         
+        /* 1. Strict Font Locking to prevent cursor drift */
         .code-font {
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
             line-height: 24px;
+            letter-spacing: 0px; /* Forces exact width alignment */
+            font-variant-ligatures: none; /* Disables connecting chars like != */
         }
 
         #gutter { 
@@ -51,26 +55,45 @@
 
         #editing, #highlighting { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            margin: 0; padding: 15px; border: 0; tab-size: 4; white-space: pre; 
-            box-sizing: border-box; overflow: auto; 
+            margin: 0; 
+            padding: 15px; /* Exact same padding */
+            border: 0; 
+            tab-size: 4; 
+            white-space: pre; /* NO WRAPPING */
+            word-wrap: normal;
+            box-sizing: border-box; 
         }
 
-        #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; }
-        #highlighting { z-index: 2; pointer-events: none; }
+        /* 2. Top layer (The Cursor) handles scrolling */
+        #editing { 
+            z-index: 3; 
+            background: transparent; 
+            color: transparent; /* Text is invisible, caret is visible */
+            caret-color: var(--fg); 
+            outline: none; 
+            resize: none; 
+            overflow: auto; /* Scrollbars appear here */
+        }
 
-        /* Modals & Syntax Report */
+        /* 3. Bottom layer (The Colors) is locked */
+        #highlighting { 
+            z-index: 2; 
+            pointer-events: none; 
+            overflow: hidden; /* HIDDEN SCROLLBARS - moved by JS only */
+            color: var(--fg);
+        }
+
+        /* Modals */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
-        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); max-height: 80vh; overflow-y: auto; display:flex; flex-direction:column; }
         .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
         
         .syntax-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .error-item { background: rgba(255, 85, 85, 0.1); border-left: 3px solid var(--red); padding: 10px; margin-bottom: 8px; font-size: 12px; }
         .warning-item { background: rgba(241, 250, 140, 0.1); border-left: 3px solid var(--yellow); padding: 10px; margin-bottom: 8px; font-size: 12px; }
-        .error-line { font-weight: bold; color: var(--red); display: inline-block; width: 60px; }
-        .warning-line { font-weight: bold; color: var(--yellow); display: inline-block; width: 60px; }
         .success-msg { color: var(--green); text-align: center; padding: 20px; font-weight: bold; font-size: 16px; }
 
-        /* Syntax Highlighting */
+        /* Highlighting Colors */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
@@ -109,7 +132,7 @@
     <div class="sidebar">
         <div class="sidebar-brand">
             Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small>
-            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Advanced Linter</div>
+            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Sync Fixed</div>
         </div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
@@ -157,8 +180,10 @@
     const elSaveStatus = document.getElementById('save-status');
 
     let saveTimer; 
+    let users = JSON.parse(localStorage.getItem('sk_users')) || {};
+    let currentUser = null;
+    let currentProjectId = null;
 
-    // Syntax Definitions
     const syntaxDB = {
         core: ["command", "trigger:", "function", "return", "options:", "variables:", "aliases:", "on join:", "on quit:", "on load:", "on unload:", "on skript load:", "on damage:", "on death:", "on rightclick:", "on leftclick:", "on place:", "on break:", "on chat:", "on command:", "on drop:", "on pickup:", "on consume:", "on respawn:", "on connect:", "on disconnect:", "send", "broadcast", "set", "add", "remove", "delete", "clear", "wait", "stop", "cancel event", "apply", "teleport", "give", "drop", "spawn", "kill", "damage", "heal", "repair", "execute console command", "make player execute", "if", "else", "else if", "while", "loop", "loop-player", "loop-value", "loop-index", "loop-entity", "continue", "exit", "arg-1", "arg-2", "player", "victim", "attacker", "event-block", "event-location", "event-item", "uuid", "name of", "distance between", "location of", "metadata", "now", "unix timestamp", "health of", "max health of"],
         skriptgui: ["create a gui with virtual chest inventory", "create a gui with virtual hopper inventory", "create a gui with virtual dropper inventory", "open last created gui", "open the last created gui", "edit gui", "edit last created gui", "make gui slot", "make next gui slot", "format gui slot", "to run:", "to close:", "to do nothing", "unstealable", "to nothing", "gui-inventory", "gui-slot", "gui-click-type", "gui-cursor", "gui-item", "gui-name", "run function", "from function", "change gui shape"],
@@ -166,11 +191,6 @@
     };
     const dictionary = [...syntaxDB.core, ...syntaxDB.skriptgui, ...syntaxDB.addons];
 
-    let users = JSON.parse(localStorage.getItem('sk_users')) || {};
-    let currentUser = null;
-    let currentProjectId = null;
-
-    // --- AUTH ---
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         const p = document.getElementById('auth-pass').value.trim();
@@ -184,18 +204,10 @@
             login(u);
         }
     }
-
-    function login(username) {
-        currentUser = username;
-        document.getElementById('auth-modal').style.display = 'none';
-        document.getElementById('user-display').innerText = "User: " + username;
-        renderProjectList();
-        loadProject(Object.keys(users[username].projects)[0]);
-    }
+    function login(username) { currentUser = username; document.getElementById('auth-modal').style.display = 'none'; document.getElementById('user-display').innerText = "User: " + username; renderProjectList(); loadProject(Object.keys(users[username].projects)[0]); }
     function logout() { location.reload(); }
     function saveUsers() { localStorage.setItem('sk_users', JSON.stringify(users)); }
 
-    // --- PROJECT ---
     function renderProjectList() {
         elProjList.innerHTML = "";
         const projs = users[currentUser].projects;
@@ -207,7 +219,6 @@
             elProjList.appendChild(div);
         });
     }
-
     function loadProject(name) {
         if(!name) return;
         currentProjectId = name;
@@ -216,7 +227,6 @@
         updateEditor();
         renderProjectList();
     }
-
     function saveCurrentProject(silent = false) {
         if(!currentUser || !currentProjectId) return;
         users[currentUser].projects[currentProjectId] = elInput.value;
@@ -225,7 +235,6 @@
         elSaveStatus.style.color = "var(--green)";
         if(!silent) alert("Project Saved!");
     }
-
     function createNewProject() {
         const name = prompt("Project Name (e.g., gui.sk):");
         if(name && !users[currentUser].projects[name]) {
@@ -234,7 +243,6 @@
             loadProject(name);
         }
     }
-
     function deleteProject(name, e) {
         e.stopPropagation();
         if(confirm(`Delete ${name}?`)) {
@@ -249,128 +257,39 @@
         }
     }
 
-    // --- ADVANCED SYNTAX CHECKER ---
-    function runSyntaxCheck() {
-        const lines = elInput.value.split('\n');
-        const errors = [];
-        const warnings = [];
-        
-        let context = {
-            inLoop: false,
-            loopDepth: 0,
-            inTrigger: false,
-            combatContext: false, // For attacker/victim
-            commandDef: null
-        };
-        
-        // Check for mixing GUI addons
-        const code = elInput.value;
-        if(code.includes("format slot") && code.includes("make gui slot")) {
-            warnings.push({line: "-", msg: "Legacy Warning: You are mixing TuSKe ('format slot') and Skript-GUI ('make gui slot'). This often causes conflicts."});
-        }
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const trimmed = line.trim();
-            const indentLvl = line.search(/\S|$/); // whitespace count
-            
-            if (trimmed === "" || trimmed.startsWith("#")) continue;
-
-            // 1. Basic Formatting
-            if (/^(command|trigger|if|else|loop|while|function|on \w+|options|variables)/.test(trimmed)) {
-                if (!trimmed.endsWith(":")) errors.push({line: i + 1, msg: "Missing colon ':' at end of line."});
-            }
-
-            // 2. Indentation Logic (Reset context on root level)
-            if (indentLvl === 0) {
-                context.loopDepth = 0;
-                context.inTrigger = false;
-                context.combatContext = false;
-                context.commandDef = null;
-            }
-
-            // 3. Command Structure
-            if (trimmed.startsWith("command /")) {
-                context.commandDef = i;
-            }
-            if (trimmed.startsWith("trigger:")) {
-                context.inTrigger = true;
-                context.commandDef = null; // Trigger found, safe
-            }
-
-            // 4. Combat Context
-            if (trimmed.startsWith("on damage") || trimmed.startsWith("on death")) {
-                context.combatContext = true;
-            }
-            if ((trimmed.includes("attacker") || trimmed.includes("victim")) && !context.combatContext) {
-                 warnings.push({line: i + 1, msg: "Context Error: 'attacker'/'victim' used outside of a combat event (on damage/death)."});
-            }
-
-            // 5. Loop Context
-            if (trimmed.startsWith("loop ") || trimmed.startsWith("while ")) {
-                context.loopDepth++;
-            }
-            if ((trimmed.includes("loop-player") || trimmed.includes("loop-value") || trimmed.includes("loop-index")) && context.loopDepth === 0) {
-                errors.push({line: i + 1, msg: "Logic Error: You are using loop values outside of a loop block."});
-            }
-
-            // 6. Type Logic
-            if (trimmed.includes("add ") && trimmed.includes("\"") && trimmed.includes(" to ") && !trimmed.includes("::")) {
-                 // Trying to add text to a variable usually requires list variable (::)
-                 if(!trimmed.includes("message") && !trimmed.includes("broadcast")) {
-                    warnings.push({line: i + 1, msg: "Type Safety: Adding text to a scalar variable? Did you mean 'set' or use a list variable {var::*}?"});
-                 }
-            }
-            
-            // 7. Indentation Continuity
-            if (i > 0) {
-                const prevLine = lines[i-1];
-                const prevTrimmed = prevLine.trim();
-                const prevIndent = prevLine.search(/\S|$/);
-                if (prevTrimmed.endsWith(":") && indentLvl <= prevIndent && prevTrimmed.length > 0 && !prevTrimmed.startsWith("#")) {
-                     errors.push({line: i + 1, msg: "Indentation Error: Expected indented block after line " + i});
-                }
-            }
-        }
-        
-        // Post-Loop Check: Command without trigger
-        if (context.commandDef !== null) {
-            errors.push({line: context.commandDef + 1, msg: "Structure Error: Command defined but no 'trigger:' section found."});
-        }
-
-        renderSyntaxReport(errors, warnings);
-    }
-
-    function renderSyntaxReport(errors, warnings) {
-        const modal = document.getElementById('syntax-modal');
-        const results = document.getElementById('syntax-results');
-        const scoreDiv = document.getElementById('syntax-score');
-        
-        results.innerHTML = "";
-        
-        if (errors.length === 0 && warnings.length === 0) {
-            results.innerHTML = `<div class="success-msg">✅ Perfect! No errors found.</div>`;
-            scoreDiv.innerText = "Status: STABLE";
-            scoreDiv.style.color = "var(--green)";
-        } else {
-            const score = Math.max(0, 100 - (errors.length * 10) - (warnings.length * 5));
-            scoreDiv.innerText = `Health: ${score}%`;
-            scoreDiv.style.color = score > 80 ? "var(--green)" : score > 50 ? "var(--yellow)" : "var(--red)";
-
-            errors.forEach(err => {
-                results.innerHTML += `<div class="error-item"><span class="error-line">Line ${err.line}</span> ${err.msg}</div>`;
-            });
-            warnings.forEach(warn => {
-                results.innerHTML += `<div class="warning-item"><span class="warning-line">Line ${warn.line}</span> ${warn.msg}</div>`;
-            });
-        }
-        modal.style.display = "flex";
-    }
-
-    // --- EDITOR CORE ---
+    // --- EDITOR INPUT HANDLER ---
     elInput.addEventListener('keydown', function(e) {
         const start = this.selectionStart;
+        const end = this.selectionEnd;
         const val = this.value;
+
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                const startLineIndex = val.lastIndexOf('\n', start - 1) + 1;
+                const endLineIndex = val.indexOf('\n', end);
+                const actualEnd = endLineIndex === -1 ? val.length : endLineIndex;
+                const selectedText = val.substring(startLineIndex, actualEnd);
+                const result = selectedText.split('\n').map(line => line.startsWith('\t') ? line.substring(1) : line).join('\n');
+                document.execCommand('insertText', false, result);
+                this.selectionStart = startLineIndex; this.selectionEnd = startLineIndex + result.length;
+            } else {
+                if (start !== end) {
+                    const startLineIndex = val.lastIndexOf('\n', start - 1) + 1;
+                    const endLineIndex = val.indexOf('\n', end);
+                    const actualEnd = endLineIndex === -1 ? val.length : endLineIndex;
+                    const selectedText = val.substring(startLineIndex, actualEnd);
+                    const result = selectedText.split('\n').map(line => '\t' + line).join('\n');
+                    this.setSelectionRange(startLineIndex, actualEnd);
+                    document.execCommand('insertText', false, result);
+                    this.setSelectionRange(startLineIndex, startLineIndex + result.length);
+                } else {
+                    document.execCommand('insertText', false, "\t");
+                }
+            }
+            onEditorInput();
+            return;
+        }
 
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -382,51 +301,58 @@
             const trimmedLine = currentLine.trim();
             let extraIndent = "";
             if (trimmedLine.endsWith(':') || trimmedLine.endsWith('{')) extraIndent = "\t";
-            
-            const insertion = "\n" + currentIndent + extraIndent;
-            this.value = val.substring(0, start) + insertion + val.substring(this.selectionEnd);
-            this.selectionStart = this.selectionEnd = start + insertion.length;
-            
-            const lineHeight = 24; 
-            const currentLineNum = val.substr(0, start).split("\n").length;
+            document.execCommand('insertText', false, "\n" + currentIndent + extraIndent);
+            const lineHeight = 24;
+            const currentLineNum = this.value.substr(0, this.selectionStart).split("\n").length;
             if (currentLineNum * lineHeight > this.scrollTop + this.clientHeight) this.scrollTop += lineHeight;
             onEditorInput();
-            return; 
+            return;
         }
 
         const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
         if (pairs[e.key]) {
             e.preventDefault();
-            this.value = val.substring(0, start) + e.key + pairs[e.key] + val.substring(this.selectionEnd);
-            this.selectionStart = this.selectionEnd = start + 1;
+            document.execCommand('insertText', false, e.key + pairs[e.key]);
+            this.selectionStart = this.selectionEnd = this.selectionStart - 1;
             onEditorInput();
         }
+    });
 
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const lastWord = val.substring(0, start).split(/[\s\n\t]+/).pop();
-            if (lastWord.length > 1) {
-                const match = dictionary.find(w => w.startsWith(lastWord.toLowerCase()));
-                if (match) {
-                    const wordStart = start - lastWord.length;
-                    this.value = val.substring(0, wordStart) + match + val.substring(this.selectionEnd);
-                    this.selectionStart = this.selectionEnd = wordStart + match.length;
-                    onEditorInput();
-                } else {
-                    this.value = val.substring(0, start) + "\t" + val.substring(this.selectionEnd);
-                    this.selectionStart = this.selectionEnd = start + 1;
-                }
-            } else {
-                this.value = val.substring(0, start) + "\t" + val.substring(this.selectionEnd);
-                this.selectionStart = this.selectionEnd = start + 1;
+    // --- SYNTAX & RENDER ---
+    function runSyntaxCheck() {
+        const lines = elInput.value.split('\n');
+        const errors = []; const warnings = [];
+        let context = { inLoop: false, loopDepth: 0, inTrigger: false, combatContext: false, commandDef: null };
+        const code = elInput.value;
+        if(code.includes("format slot") && code.includes("make gui slot")) warnings.push({line: "-", msg: "Mixing TuSKe and Skript-GUI syntax."});
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i]; const trimmed = line.trim(); const indentLvl = line.search(/\S|$/); 
+            if (trimmed === "" || trimmed.startsWith("#")) continue;
+            if (indentLvl === 0) { context.loopDepth = 0; context.inTrigger = false; context.combatContext = false; context.commandDef = null; }
+            if (/^(command|trigger|if|else|loop|while|function|on \w+|options|variables)/.test(trimmed) && !trimmed.endsWith(":")) errors.push({line: i + 1, msg: "Missing colon ':'."});
+            if (trimmed.startsWith("command /")) context.commandDef = i;
+            if (trimmed.startsWith("trigger:")) { context.inTrigger = true; context.commandDef = null; }
+            if (trimmed.startsWith("on damage") || trimmed.startsWith("on death")) context.combatContext = true;
+            if (trimmed.startsWith("loop ") || trimmed.startsWith("while ")) context.loopDepth++;
+            if ((trimmed.includes("attacker") || trimmed.includes("victim")) && !context.combatContext) warnings.push({line: i + 1, msg: "'attacker'/'victim' used outside combat event."});
+            if ((trimmed.includes("loop-player") || trimmed.includes("loop-value")) && context.loopDepth === 0) errors.push({line: i + 1, msg: "Loop value used outside loop."});
+            if (i > 0) {
+                const prevLine = lines[i-1]; const prevTrimmed = prevLine.trim(); const prevIndent = prevLine.search(/\S|$/);
+                if (prevTrimmed.endsWith(":") && indentLvl <= prevIndent && prevTrimmed.length > 0 && !prevTrimmed.startsWith("#")) errors.push({line: i + 1, msg: "Expected indentation after line " + i});
             }
         }
-        
-        setTimeout(() => {
-            const lines = val.substr(0, this.selectionStart).split("\n");
-            document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
-        }, 10);
-    });
+        if (context.commandDef !== null) errors.push({line: context.commandDef + 1, msg: "Command defined without 'trigger:'."});
+        const modal = document.getElementById('syntax-modal');
+        const results = document.getElementById('syntax-results');
+        results.innerHTML = "";
+        if (errors.length === 0 && warnings.length === 0) results.innerHTML = `<div class="success-msg">✅ Perfect! No errors found.</div>`;
+        else {
+            errors.forEach(err => results.innerHTML += `<div class="error-item"><span class="error-line">Line ${err.line}</span> ${err.msg}</div>`);
+            warnings.forEach(warn => results.innerHTML += `<div class="warning-item"><span class="warning-line">Line ${warn.line}</span> ${warn.msg}</div>`);
+        }
+        modal.style.display = "flex";
+    }
 
     function onEditorInput() {
         updateEditor();
@@ -439,41 +365,33 @@
     function updateEditor() {
         let code = elInput.value;
         elGutter.innerHTML = Array.from({length: code.split('\n').length}, (_, i) => i + 1).join('<br>');
-
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
         h = h.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-
         const coreSorted = syntaxDB.core.sort((a,b) => b.length - a.length);
         const coreRegex = new RegExp(`\\b(${coreSorted.map(k => k.replace(/[^a-zA-Z0-9\-]/g, '\\$&')).join('|')})\\b`, 'g');
         h = h.replace(coreRegex, '<span class="sk-effect">$1</span>');
-
         const guiSorted = syntaxDB.skriptgui.sort((a,b) => b.length - a.length);
         const guiRegex = new RegExp(`\\b(${guiSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})`, 'g');
         h = h.replace(guiRegex, '<span class="sk-gui">$1</span>');
-
-        const addonSorted = syntaxDB.addons.sort((a,b) => b.length - a.length);
-        const addonRegex = new RegExp(`\\b(${addonSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})\\b`, 'g');
-        h = h.replace(addonRegex, '<span class="sk-addon">$1</span>');
         h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
-
-        const hasGui = guiSorted.some(k => code.includes(k));
-        document.getElementById('addon-indicator').style.display = hasGui ? 'inline-block' : 'none';
-
+        document.getElementById('addon-indicator').style.display = guiSorted.some(k => code.includes(k)) ? 'inline-block' : 'none';
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
+        setTimeout(() => {
+            const lines = elInput.value.substr(0, elInput.selectionStart).split("\n");
+            document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
+        }, 0);
     }
 
     function syncScroll() {
+        // THIS IS THE KEY FIX FOR "CURSOR GOES FURTHER"
         elOutput.scrollTop = elGutter.scrollTop = elInput.scrollTop;
         elOutput.scrollLeft = elInput.scrollLeft;
     }
 
-    function copyCode() {
-        navigator.clipboard.writeText(elInput.value);
-        alert("Code copied to clipboard!");
-    }
+    function copyCode() { navigator.clipboard.writeText(elInput.value); alert("Code copied!"); }
 </script>
 </body>
 </html>
