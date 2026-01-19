@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Autocomplete</title>
+    <title>Skript IDE Pro - Ultimate Edition</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -18,66 +18,102 @@
         .container { display: flex; height: 100vh; width: 100vw; }
         
         /* Sidebar */
-        .sidebar { width: 260px; background: var(--sidebar); border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; display:flex; flex-direction:column; }
-        .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); }
+        .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
+        .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .project-list { flex: 1; padding: 10px; overflow-y: auto; }
-        .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; transition: 0.2s; }
+        .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; justify-content: space-between; transition: 0.2s; }
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: white; }
-
-        /* Main Editor */
-        .main { flex: 1; display: flex; flex-direction: column; position: relative; }
-        .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
-        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
         
+        /* Main UI */
+        .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
+        .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
+        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
+        .btn-green { color: var(--green); border-color: var(--green); }
+        .btn-yellow { color: var(--yellow); border-color: var(--yellow); }
+        .btn-cyan { color: var(--cyan); border-color: var(--cyan); }
+        .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); justify-content: space-between;}
+        
+        /* Editor Engine */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
         .code-font { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: var(--line-height); }
-
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; border-right: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; padding-top: 15px; }
         .line-number { height: var(--line-height); padding-right: 8px; }
-        
         .input-area { flex: 1; position: relative; overflow: hidden; }
         #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 15px; border: 0; tab-size: 4; white-space: pre; word-wrap: normal; box-sizing: border-box; }
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; overflow: auto; }
-        #highlighting { z-index: 2; pointer-events: none; color: var(--fg); }
+        #highlighting { z-index: 2; pointer-events: none; overflow: hidden; }
 
         /* Autocomplete Box */
-        #autocomplete {
-            position: absolute; display: none; background: var(--sidebar); 
-            border: 1px solid var(--purple); border-radius: 4px; z-index: 5000;
-            max-height: 200px; overflow-y: auto; min-width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
+        #autocomplete { position: absolute; display: none; background: var(--sidebar); border: 1px solid var(--purple); border-radius: 4px; z-index: 5000; max-height: 200px; overflow-y: auto; min-width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .suggest-item { padding: 8px 12px; cursor: pointer; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .suggest-item:hover, .suggest-item.active { background: var(--purple); color: white; }
-        .suggest-type { float: right; opacity: 0.5; font-size: 10px; margin-top: 2px; }
+        .suggest-item.active { background: var(--purple); color: white; }
+        .suggest-type { float: right; opacity: 0.5; font-size: 9px; padding: 2px 4px; border: 1px solid; border-radius: 3px; }
 
-        /* Syntax Highlight Classes */
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 6000; align-items: center; justify-content: center; }
+        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); }
+        .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
+        .error-item { background: rgba(255, 85, 85, 0.1); border-left: 3px solid var(--red); padding: 10px; margin-bottom: 8px; font-size: 12px; }
+
+        /* Highlighting Colors */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: var(--green); }
-        .sk-reflect-key { color: var(--purple); font-weight: bold; }
-        .sk-java-class { color: var(--cyan); text-decoration: underline rgba(139, 233, 253, 0.3); }
+        .sk-reflect { color: var(--purple); font-weight: bold; }
+        .sk-java-class { color: var(--cyan); text-decoration: underline rgba(139, 233, 253, 0.2); }
         .sk-java-method { color: var(--yellow); }
+        .addon-badge { background: var(--gui-gold); color: #000; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-left: 10px; }
     </style>
 </head>
 <body>
 
+<input type="file" id="file-input" style="display: none;" accept=".sk,.txt" onchange="processFileImport(this)">
 <div id="autocomplete"></div>
+
+<div id="auth-modal" class="modal-overlay" style="display:flex;">
+    <div class="modal" style="width: 350px;">
+        <h2 style="color:var(--purple); margin-top:0;">Skript IDE Pro</h2>
+        <input type="text" id="auth-user" class="input-field" placeholder="Username">
+        <input type="password" id="auth-pass" class="input-field" placeholder="Password">
+        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleAuth()">LOGIN / JOIN</button>
+    </div>
+</div>
+
+<div id="syntax-modal" class="modal-overlay">
+    <div class="modal">
+        <h2 style="margin:0;">Diagnostics</h2>
+        <div id="syntax-results" style="margin-top:20px; max-height:300px; overflow-y:auto;"></div>
+        <button class="tool-btn" style="width:100%; margin-top:15px;" onclick="document.getElementById('syntax-modal').style.display='none'">CLOSE</button>
+    </div>
+</div>
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-brand">Skript IDE <small style="opacity:0.5">PRO</small></div>
+        <div class="sidebar-brand">Skript IDE <small style="opacity: 0.5;">PRO</small></div>
+        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div id="user-display" style="font-size: 11px; color: var(--cyan); margin-bottom: 10px;">User: Guest</div>
+            <div style="display:flex; gap:5px;">
+                <button class="tool-btn" style="flex:1" onclick="createNewProject()">+ NEW</button>
+                <button class="tool-btn btn-cyan" style="flex:1" onclick="document.getElementById('file-input').click()">📂 OPEN</button>
+            </div>
+        </div>
         <div class="project-list" id="project-list"></div>
-        <div style="padding:15px;"><button class="tool-btn" style="width:100%" onclick="createNewProject()">+ NEW FILE</button></div>
+        <div style="padding: 15px;"><button class="tool-btn" style="width:100%" onclick="location.reload()">LOGOUT</button></div>
     </div>
 
     <div class="main">
         <div class="toolbar">
-            <span id="current-filename" style="color:var(--purple); font-weight:bold">Untitled.sk</span>
+            <div style="display:flex; align-items:center;">
+                <span id="current-filename" style="color: var(--purple); font-weight: bold;">No file</span>
+                <span id="addon-indicator" class="addon-badge" style="display:none;">REFLECT</span>
+            </div>
             <div style="display:flex; gap:10px;">
-                <button class="tool-btn" onclick="saveCurrentProject()">SAVE</button>
+                <button class="tool-btn btn-yellow" onclick="runSyntaxCheck()">⚠️ CHECK</button>
+                <button class="tool-btn" onclick="downloadCode()">⬇️ EXPORT</button>
+                <button class="tool-btn btn-green" onclick="saveCurrentProject(false)">💾 SAVE</button>
             </div>
         </div>
         
@@ -88,6 +124,11 @@
                 <textarea id="editing" class="code-font" spellcheck="false" oninput="onEditorInput()" onscroll="syncScroll()" onkeydown="handleKeydown(event)"></textarea>
             </div>
         </div>
+
+        <div class="status-bar">
+            <span id="save-status">Ready</span>
+            <span id="cursor-pos">Ln 1, Col 1</span>
+        </div>
     </div>
 </div>
 
@@ -96,60 +137,45 @@
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
     const elSuggest = document.getElementById('autocomplete');
+    const elSaveStatus = document.getElementById('save-status');
 
-    let currentSuggestIndex = 0;
+    let saveTimer; 
+    let users = JSON.parse(localStorage.getItem('sk_users')) || {};
+    let currentUser = null;
+    let currentProjectId = null;
     let filteredSuggestions = [];
+    let currentSuggestIndex = 0;
 
     const syntaxDB = {
-        core: ["command", "trigger", "function", "variables", "options", "if", "else", "loop", "while", "return", "send", "broadcast", "set", "add", "remove", "delete", "cancel event", "wait", "stop"],
+        core: ["command", "trigger", "function", "variables", "options", "if", "else", "loop", "while", "return", "send", "broadcast", "set", "add", "remove", "delete", "cancel event", "wait", "stop", "teleport", "kill", "give"],
         reflect: ["import", "new", "proxy", "handle", "custom event", "expression", "matched", "invoke", "section", "getter", "setter"],
-        java: ["System", "String", "Bukkit", "Player", "ItemStack", "Material", "Location", "Vector", "Event", "Component"]
+        java: ["System", "String", "Bukkit", "Player", "ItemStack", "Material", "Location", "Vector", "Event", "Component", "Object"]
     };
 
-    // --- KEYDOWN HANDLER (Tabs + Autocomplete Nav) ---
+    // --- KEYDOWN: Tabs, Pairs, and Suggest Nav ---
     function handleKeydown(e) {
         const start = elInput.selectionStart;
         const end = elInput.selectionEnd;
         const val = elInput.value;
 
-        // 1. Autocomplete Navigation
+        // 1. Suggestion Box Navigation
         if (elSuggest.style.display === 'block') {
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                currentSuggestIndex = (currentSuggestIndex + 1) % filteredSuggestions.length;
-                renderSuggestions();
-                return;
-            }
-            if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                currentSuggestIndex = (currentSuggestIndex - 1 + filteredSuggestions.length) % filteredSuggestions.length;
-                renderSuggestions();
-                return;
-            }
-            if (e.key === 'Enter' || e.key === 'Tab') {
-                e.preventDefault();
-                applySuggestion(filteredSuggestions[currentSuggestIndex]);
-                return;
-            }
-            if (e.key === 'Escape') {
-                closeSuggest();
-                return;
-            }
+            if (e.key === 'ArrowDown') { e.preventDefault(); currentSuggestIndex = (currentSuggestIndex + 1) % filteredSuggestions.length; renderSuggestions(); return; }
+            if (e.key === 'ArrowUp') { e.preventDefault(); currentSuggestIndex = (currentSuggestIndex - 1 + filteredSuggestions.length) % filteredSuggestions.length; renderSuggestions(); return; }
+            if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySuggestion(filteredSuggestions[currentSuggestIndex].text); return; }
+            if (e.key === 'Escape') { closeSuggest(); return; }
         }
 
-        // 2. Advanced Tab Logic (Multi-line & Shift-Tab)
+        // 2. Advanced Tab (Block indent & Single indent)
         if (e.key === 'Tab') {
             e.preventDefault();
-            if (e.shiftKey) {
-                // Back-tab
-                const beforeCaret = val.substring(0, start);
-                const lineStart = beforeCaret.lastIndexOf('\n') + 1;
+            if (e.shiftKey) { // Back-tab
+                const lineStart = val.lastIndexOf('\n', start - 1) + 1;
                 if (val.substring(lineStart, lineStart + 1) === '\t') {
                     elInput.value = val.substring(0, lineStart) + val.substring(lineStart + 1);
                     elInput.selectionStart = elInput.selectionEnd = start - 1;
                 }
             } else {
-                // Regular Tab or Indent Block
                 document.execCommand('insertText', false, "\t");
             }
             onEditorInput();
@@ -164,59 +190,52 @@
             document.execCommand('insertText', false, '\n' + indent + extra);
             onEditorInput();
         }
+
+        // 4. Auto-Pairs
+        const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
+        if (pairs[e.key]) {
+            e.preventDefault();
+            document.execCommand('insertText', false, e.key + pairs[e.key]);
+            elInput.selectionStart = elInput.selectionEnd = start + 1;
+            onEditorInput();
+        }
     }
 
     // --- AUTOCOMPLETE ENGINE ---
     function onEditorInput() {
         updateEditor();
+        elSaveStatus.innerText = "Unsaved..."; elSaveStatus.style.color = "var(--orange)";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => saveCurrentProject(true), 2000);
+
         const val = elInput.value;
         const pos = elInput.selectionStart;
-        
-        // Find current word
-        const lastWords = val.substring(0, pos).split(/[\s\t\n,]+/);
-        const currentWord = lastWords[lastWords.length - 1];
+        const currentWord = val.substring(0, pos).split(/[\s\t\n,]+/).pop();
 
         if (currentWord.length >= 2) {
-            showSuggest(currentWord);
-        } else {
-            closeSuggest();
-        }
-    }
-
-    function showSuggest(query) {
-        filteredSuggestions = [];
-        const q = query.toLowerCase();
-        
-        // Combine all DBs
-        Object.keys(syntaxDB).forEach(type => {
-            syntaxDB[type].forEach(item => {
-                if (item.toLowerCase().startsWith(q)) {
-                    filteredSuggestions.push({ text: item, type: type });
-                }
+            filteredSuggestions = [];
+            Object.keys(syntaxDB).forEach(type => {
+                syntaxDB[type].forEach(txt => {
+                    if (txt.toLowerCase().startsWith(currentWord.toLowerCase())) filteredSuggestions.push({text: txt, type: type});
+                });
             });
-        });
-
-        if (filteredSuggestions.length > 0) {
-            currentSuggestIndex = 0;
-            renderSuggestions();
-            
-            // Positioning (Crude but effective for this IDE)
-            const lines = elInput.value.substring(0, elInput.selectionStart).split('\n');
-            const top = lines.length * 24 + 15;
-            const left = lines[lines.length-1].length * 8 + 40;
-            
-            elSuggest.style.top = top + "px";
-            elSuggest.style.left = left + "px";
-            elSuggest.style.display = 'block';
-        } else {
-            closeSuggest();
+            if (filteredSuggestions.length > 0) {
+                currentSuggestIndex = 0;
+                renderSuggestions();
+                const lines = val.substring(0, pos).split('\n');
+                elSuggest.style.top = (lines.length * 24 + 20) + "px";
+                elSuggest.style.left = (lines[lines.length-1].length * 8 + 40) + "px";
+                elSuggest.style.display = 'block';
+                return;
+            }
         }
+        closeSuggest();
     }
 
     function renderSuggestions() {
         elSuggest.innerHTML = filteredSuggestions.map((s, i) => `
             <div class="suggest-item ${i === currentSuggestIndex ? 'active' : ''}" onclick="applySuggestion('${s.text}')">
-                ${s.text} <span class="suggest-type">${s.type.toUpperCase()}</span>
+                ${s.text} <span class="suggest-type" style="color:var(--${s.type === 'reflect' ? 'purple' : 'cyan'})">${s.type}</span>
             </div>
         `).join('');
     }
@@ -225,28 +244,17 @@
         const pos = elInput.selectionStart;
         const val = elInput.value;
         const startOfWord = val.substring(0, pos).search(/[a-zA-Z0-9_-]+$/);
-        
-        const newVal = val.substring(0, startOfWord) + word + val.substring(pos);
-        elInput.value = newVal;
+        elInput.value = val.substring(0, startOfWord) + word + val.substring(pos);
         elInput.selectionStart = elInput.selectionEnd = startOfWord + word.length;
-        
-        closeSuggest();
-        updateEditor();
+        closeSuggest(); updateEditor();
     }
+    function closeSuggest() { elSuggest.style.display = 'none'; }
 
-    function closeSuggest() {
-        elSuggest.style.display = 'none';
-    }
-
-    // --- RENDERER (Including Reflect Support) ---
+    // --- SYNTAX HIGHLIGHTING & UI ---
     function updateEditor() {
         let code = elInput.value;
+        elGutter.innerHTML = code.split('\n').map((_, i) => `<div class="line-number">${i+1}</div>`).join('');
         
-        // Gutter
-        const lines = code.split('\n');
-        elGutter.innerHTML = lines.map((_, i) => `<div class="line-number">${i+1}</div>`).join('');
-
-        // Highlighting
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
@@ -254,30 +262,79 @@
         h = h.replace(/(\.[a-zA-Z0-9_]+)(?=\()/g, '<span class="sk-java-method">$1</span>');
         h = h.replace(/\b([A-Z][a-zA-Z0-9]+)\b/g, '<span class="sk-java-class">$1</span>');
         
-        const keys = [...syntaxDB.core, ...syntaxDB.reflect];
-        const keyRegex = new RegExp(`\\b(${keys.join('|')})\\b`, 'g');
-        h = h.replace(keyRegex, (m) => syntaxDB.reflect.includes(m) ? `<span class="sk-reflect-key">${m}</span>` : `<span class="sk-effect">${m}</span>`);
+        const reflectKeys = new RegExp(`\\b(${syntaxDB.reflect.join('|')})\\b`, 'g');
+        h = h.replace(reflectKeys, '<span class="sk-reflect">$1</span>');
+        
+        const coreKeys = new RegExp(`\\b(${syntaxDB.core.join('|')})\\b`, 'g');
+        h = h.replace(coreKeys, '<span class="sk-effect">$1</span>');
 
+        document.getElementById('addon-indicator').style.display = code.includes("import") ? 'inline-block' : 'none';
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
+        
+        const lines = elInput.value.substr(0, elInput.selectionStart).split("\n");
+        document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
     }
 
-    function syncScroll() {
-        elOutput.scrollTop = elGutter.scrollTop = elInput.scrollTop;
-        elOutput.scrollLeft = elInput.scrollLeft;
+    // --- DIAGNOSTICS ---
+    function runSyntaxCheck() {
+        const lines = elInput.value.split('\n');
+        const errs = [];
+        lines.forEach((l, i) => {
+            const t = l.trim();
+            if ((t.startsWith("command") || t.startsWith("on ") || t.startsWith("import:")) && !t.endsWith(":")) 
+                errs.push(`Line ${i+1}: Missing colon ':' at end of header.`);
+            if (t.startsWith("import ") && l.search(/\S/) !== 0)
+                errs.push(`Line ${i+1}: Reflect imports must not be indented.`);
+        });
+        const res = document.getElementById('syntax-results');
+        res.innerHTML = errs.length ? errs.map(e => `<div class="error-item">${e}</div>`).join('') : '<div style="color:var(--green)">No major errors found.</div>';
+        document.getElementById('syntax-modal').style.display = 'flex';
     }
 
-    // --- INITIALIZATION ---
-    let currentUser = "Dev";
-    let users = JSON.parse(localStorage.getItem('sk_users')) || { "Dev": { projects: { "Reflection.sk": "import:\n\tjava.lang.System\n\non load:\n\tset {t} to System.currentTimeMillis()" } } };
-    
-    function loadProject(name) {
-        elInput.value = users[currentUser].projects[name];
-        document.getElementById('current-filename').innerText = name;
-        updateEditor();
+    // --- AUTH & FILES ---
+    function handleAuth() {
+        const u = document.getElementById('auth-user').value.trim();
+        if(!u) return;
+        if(!users[u]) users[u] = { projects: {"Main.sk": "import:\n\tjava.lang.System\n\non load:\n\tbroadcast System.currentTimeMillis()"} };
+        currentUser = u; saveUsers();
+        document.getElementById('auth-modal').style.display = 'none';
+        document.getElementById('user-display').innerText = "User: " + u;
+        renderProjectList(); loadProject(Object.keys(users[u].projects)[0]);
     }
-
-    window.onload = () => loadProject(Object.keys(users[currentUser].projects)[0]);
-    function saveCurrentProject() { users[currentUser].projects[document.getElementById('current-filename').innerText] = elInput.value; localStorage.setItem('sk_users', JSON.stringify(users)); alert("Saved!"); }
+    function saveUsers() { localStorage.setItem('sk_users', JSON.stringify(users)); }
+    function renderProjectList() {
+        const list = document.getElementById('project-list');
+        list.innerHTML = Object.keys(users[currentUser].projects).map(p => `
+            <div class="project-item ${currentProjectId === p ? 'active' : ''}" onclick="loadProject('${p}')">
+                <span>📄 ${p}</span>
+                <span style="color:var(--red)" onclick="deleteProject('${p}', event)">×</span>
+            </div>
+        `).join('');
+    }
+    function loadProject(p) { currentProjectId = p; elInput.value = users[currentUser].projects[p]; updateEditor(); renderProjectList(); document.getElementById('current-filename').innerText = p; }
+    function saveCurrentProject(silent) { 
+        if(!currentUser) return;
+        users[currentUser].projects[currentProjectId] = elInput.value; saveUsers(); 
+        elSaveStatus.innerText = "All changes saved"; elSaveStatus.style.color = "var(--green)";
+        if(!silent) alert("Saved Locally!");
+    }
+    function createNewProject(name, content) {
+        const n = name || prompt("Project Name:");
+        if(!n) return;
+        users[currentUser].projects[n] = content || "# New Script";
+        saveUsers(); loadProject(n);
+    }
+    function downloadCode() {
+        const blob = new Blob([elInput.value], {type: 'text/plain'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = currentProjectId; a.click();
+    }
+    function processFileImport(input) {
+        const file = input.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => createNewProject(file.name, e.target.result);
+        reader.readAsText(file);
+    }
+    function syncScroll() { elOutput.scrollTop = elGutter.scrollTop = elInput.scrollTop; elOutput.scrollLeft = elInput.scrollLeft; }
 </script>
 </body>
 </html>
