@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE - Full Spectrum</title>
+    <title>Skript IDE - Autosave Pro</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #1e1f29; --fg: #f8f8f2;
@@ -16,23 +16,20 @@
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar */
         .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; z-index: 10; transition: width 0.2s; }
         .sidebar.collapsed { width: 0; overflow: hidden; border: none; }
         .sidebar-header { padding: 15px; font-size: 13px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; }
         
         .project-list { flex: 1; padding: 5px; overflow-y: auto; }
-        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; white-space: nowrap; }
+        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; white-space: nowrap; transition: 0.2s; }
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: #000; font-weight: bold; }
         
-        /* Main UI */
         .main { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
         .toolbar { height: 40px; background: var(--sidebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #111; gap: 10px; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
         .toggle-side { background: transparent; border: none; color: var(--comment); cursor: pointer; font-size: 18px; }
 
-        /* Editor Engine */
         .editor-container { flex: 1; position: relative; display: flex; background: var(--bg); overflow: hidden; }
         .code-font { font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px; line-height: var(--line-height); }
         #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; user-select: none; border-right: 1px solid rgba(255,255,255,0.05); }
@@ -43,7 +40,7 @@
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: #fff; outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Mapped Syntax Colors */
+        /* Syntax Dictionary Coloring */
         .sk-ev { color: var(--pink); font-weight: bold; }
         .sk-eff { color: var(--cyan); }
         .sk-cond { color: var(--yellow); font-weight: bold; }
@@ -51,32 +48,27 @@
         .sk-item { color: var(--green); }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
-        .sk-str { color: var(--green); opacity: 0.9; }
+        .sk-str { color: var(--green); opacity: 0.85; }
 
-        /* Autocomplete */
-        #autocomplete { position: absolute; display: none; background: var(--sidebar); border: 1px solid var(--purple); border-radius: 4px; z-index: 5000; max-height: 200px; overflow-y: auto; min-width: 250px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
-        .suggest-item { padding: 6px 12px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); }
-        .suggest-item.active { background: var(--purple); color: #000; }
-        
         .status-bar { height: 22px; background: var(--sidebar); border-top: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: var(--comment); justify-content: space-between; }
+        #save-status.syncing { color: var(--orange); font-weight: bold; }
+        #save-status.saved { color: var(--green); }
     </style>
 </head>
 <body>
 
-<div id="autocomplete"></div>
-
-<div id="auth-modal" style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:var(--sidebar); padding:25px; border-radius:8px; border:1px solid var(--purple); width:300px;">
-        <h3 style="margin:0 0 15px 0; color:var(--purple)">Skript IDE Full Spectrum</h3>
-        <input type="text" id="auth-user" style="width:100%; padding:10px; background:#111; border:1px solid #333; color:white; margin-bottom:15px; box-sizing:border-box;" placeholder="Username">
-        <button class="tool-btn" style="width:100%; height:40px; background:var(--purple); color:black;" onclick="handleAuth()">START CODING</button>
+<div id="auth-modal" style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--sidebar); padding:30px; border-radius:12px; border:1px solid var(--purple); width:320px; text-align:center;">
+        <h2 style="margin:0 0 20px 0; color:var(--purple); letter-spacing: 1px;">Skript IDE <small>PRO</small></h2>
+        <input type="text" id="auth-user" style="width:100%; padding:12px; background:#111; border:1px solid #333; color:white; margin-bottom:15px; border-radius:4px;" placeholder="Username">
+        <button class="tool-btn" style="width:100%; height:45px; background:var(--purple); color:black; font-weight:bold;" onclick="handleAuth()">INITIALIZE</button>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <span>SCRIPTS</span>
+            <span>FILE EXPLORER</span>
             <button class="toggle-side" onclick="toggleSidebar()">«</button>
         </div>
         <div style="padding: 10px; display: flex; gap: 5px;">
@@ -91,8 +83,8 @@
             <button class="toggle-side" id="open-btn" style="display:none" onclick="toggleSidebar()">»</button>
             <span id="cur-file" style="font-size: 12px; color: var(--purple); font-weight: bold;">untitled.sk</span>
             <div style="flex:1"></div>
-            <button class="tool-btn" onclick="exportSk()">EXPORT .SK</button>
-            <button class="tool-btn" style="color:var(--green)" onclick="saveSk(false)">SAVE</button>
+            <button class="tool-btn" onclick="exportSk()">DOWNLOAD .SK</button>
+            <button class="tool-btn" style="background:var(--purple); color:black;" onclick="saveSk(false)">FORCE SAVE</button>
         </div>
 
         <div class="editor-container">
@@ -104,7 +96,7 @@
         </div>
 
         <div class="status-bar">
-            <span id="save-status">Ready</span>
+            <span id="save-status">Cloud Sync Ready</span>
             <span id="cursor-pos">Ln 1, Col 1</span>
         </div>
     </div>
@@ -116,29 +108,29 @@
     const elIn = document.getElementById('editing');
     const elOut = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
-    const elSug = document.getElementById('autocomplete');
+    const elStatus = document.getElementById('save-status');
 
     let user = null;
     let curFile = null;
-    let db = JSON.parse(localStorage.getItem('sk_full_spectrum')) || {};
+    let db = JSON.parse(localStorage.getItem('sk_pro_db_v3')) || {};
+    let autoSaveTimer;
 
-    // --- COLOR MAPPING SYSTEM ---
+    // --- COLOR MAPPING DATABASE (Categorized) ---
     const colors = {
         ev: ["on join:", "on quit:", "on death:", "on break:", "on place:", "on chat:", "on rightclick:", "on leftclick:", "on load:", "on command:", "on damage:", "command"],
-        eff: ["set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel", "teleport", "kill", "spawn", "give", "apply", "execute", "message"],
-        cond: ["if", "else", "else if", "has", "exists", "is", "contains", "while", "loop"],
-        exp: ["player", "victim", "attacker", "target", "location", "uuid", "name", "world", "now", "yesterday", "distance", "health", "metadata"],
-        item: ["stone", "diamond", "gold", "iron", "sword", "pickaxe", "axe", "shovel", "hoe", "grass", "dirt", "cobblestone", "apple", "tnt", "chest"]
+        eff: ["set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel", "teleport", "kill", "spawn", "give", "apply", "execute", "message", "play", "kick", "ban"],
+        cond: ["if", "else", "else if", "has", "exists", "is", "contains", "while", "loop", "can", "greater", "less"],
+        exp: ["player", "victim", "attacker", "target", "location", "uuid", "name", "world", "now", "yesterday", "distance", "health", "metadata", "event-block", "loop-value"],
+        item: ["stone", "diamond", "gold", "iron", "sword", "pickaxe", "axe", "shovel", "hoe", "grass", "dirt", "cobblestone", "apple", "tnt", "chest", "netherite", "elytra"]
     };
 
-    // Create a flat map for O(1) color lookup
     const colorMap = {};
     Object.keys(colors).forEach(cat => colors[cat].forEach(word => colorMap[word] = cat));
 
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         if(!u) return; user = u;
-        if(!db[user]) db[user] = { "init.sk": "on join:\n\tsend \"&bColors Loaded!\"\n\tgive player diamond sword" };
+        if(!db[user]) db[user] = { "autosave_test.sk": "on join:\n\tsend \"&eAutosave is now ACTIVE\"\n\tset {last_login} to now" };
         document.getElementById('auth-modal').style.display = 'none';
         renderList(); load(Object.keys(db[user])[0]);
     }
@@ -148,34 +140,46 @@
         const lines = code.split('\n');
         elGutter.innerHTML = lines.map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
 
-        // Tokenizer highlighting
         let html = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-        // 1. Comments (Highest priority)
         html = html.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
-        // 2. Strings
         html = html.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-str">$1</span>');
-        // 3. Variables
         html = html.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
 
-        // 4. Keyword Mapping (Tokenizer)
-        // This splits by whitespace and punctuation but keeps them to reconstruct the string
         const tokens = html.split(/(\s+|[.,:!?;])/);
         const highlighted = tokens.map(token => {
             const clean = token.toLowerCase();
             if (colorMap[clean]) return `<span class="sk-${colorMap[clean]}">${token}</span>`;
-            // Special check for headers ending in colons
             if (token.endsWith(':') && colorMap[clean.slice(0,-1)]) return `<span class="sk-${colorMap[clean.slice(0,-1)]}">${token}</span>`;
             return token;
         }).join('');
 
         elOut.innerHTML = highlighted + (code.endsWith('\n') ? ' ' : '');
-        
         const cur = code.substr(0, elIn.selectionStart).split("\n");
         document.getElementById('cursor-pos').innerText = `Ln ${cur.length}, Col ${cur[cur.length-1].length + 1}`;
     }
 
-    // --- STANDARD FEATURES ---
+    // --- CORE LOGIC: AUTOSAVE ---
+    function onInput() {
+        update();
+        elStatus.innerText = "Saving...";
+        elStatus.className = "syncing";
+        
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => {
+            saveSk(true);
+        }, 1500); // 1.5 Second delay after typing stops
+    }
+
+    function saveSk(silent=true) {
+        if(!user || !curFile) return;
+        db[user][curFile] = elIn.value;
+        localStorage.setItem('sk_pro_db_v3', JSON.stringify(db));
+        
+        elStatus.innerText = "Saved to storage";
+        elStatus.className = "saved";
+        if(!silent) alert("Project manually force-saved.");
+    }
+
     function toggleSidebar() {
         document.getElementById('sidebar').classList.toggle('collapsed');
         document.getElementById('open-btn').style.display = document.getElementById('sidebar').classList.contains('collapsed') ? 'block' : 'none';
@@ -191,18 +195,7 @@
         curFile = f; elIn.value = db[user][f];
         document.getElementById('cur-file').innerText = f;
         update(); renderList();
-    }
-
-    function saveSk(silent=true) {
-        if(!user) return; db[user][curFile] = elIn.value;
-        localStorage.setItem('sk_full_spectrum', JSON.stringify(db));
-        document.getElementById('save-status').innerText = "Saved";
-        if(!silent) alert("Project Sync Successful.");
-    }
-
-    function onInput() { 
-        update(); 
-        document.getElementById('save-status').innerText = "Unsaved Changes...";
+        elStatus.innerText = "File loaded";
     }
 
     function onKey(e) {
@@ -213,13 +206,6 @@
             const indent = lastLine.match(/^\s*/)[0];
             const extra = lastLine.trim().endsWith(':') ? '\t' : '';
             document.execCommand('insertText', false, '\n' + indent + extra);
-        }
-        const pairs = {'{':'}', '[':']', '(':')', '"':'"'};
-        if (pairs[e.key]) {
-            e.preventDefault();
-            const start = elIn.selectionStart;
-            document.execCommand('insertText', false, e.key + pairs[e.key]);
-            elIn.selectionStart = elIn.selectionEnd = start + 1;
         }
     }
 
@@ -234,8 +220,8 @@
     }
 
     function createFile() {
-        const n = prompt("Filename:");
-        if(n) { db[user][n] = "# New Script"; load(n); }
+        const n = prompt("Filename (e.g. system.sk):");
+        if(n) { db[user][n] = "# New Script Created"; load(n); }
     }
 
     function importSk(input) {
