@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE - High Performance</title>
+    <title>Skript IDE - Full Spectrum</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #1e1f29; --fg: #f8f8f2;
@@ -17,41 +17,41 @@
         .container { display: flex; height: 100vh; width: 100vw; }
         
         /* Sidebar */
-        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; z-index: 10; transition: width 0.2s ease; }
+        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; z-index: 10; transition: width 0.2s; }
         .sidebar.collapsed { width: 0; overflow: hidden; border: none; }
-        .sidebar-header { padding: 15px; font-size: 13px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-header { padding: 15px; font-size: 13px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; }
         
         .project-list { flex: 1; padding: 5px; overflow-y: auto; }
-        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; white-space: nowrap; }
+        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; white-space: nowrap; }
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: #000; font-weight: bold; }
         
-        /* Main */
+        /* Main UI */
         .main { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
         .toolbar { height: 40px; background: var(--sidebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #111; gap: 10px; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
-        .btn-green { color: var(--green); }
-        .toggle-side { background: transparent; border: none; color: var(--comment); cursor: pointer; font-size: 18px; display: flex; align-items: center; }
+        .toggle-side { background: transparent; border: none; color: var(--comment); cursor: pointer; font-size: 18px; }
 
         /* Editor Engine */
         .editor-container { flex: 1; position: relative; display: flex; background: var(--bg); overflow: hidden; }
         .code-font { font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px; line-height: var(--line-height); }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; user-select: none; border-right: 1px solid rgba(255,255,255,0.05); overflow: hidden; }
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; user-select: none; border-right: 1px solid rgba(255,255,255,0.05); }
         .line-num { padding-right: 10px; height: var(--line-height); }
         
         .input-area { flex: 1; position: relative; overflow: hidden; }
         #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: 0; tab-size: 4; white-space: pre; word-wrap: normal; box-sizing: border-box; overflow: auto; }
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: #fff; outline: none; resize: none; }
-        #highlighting { z-index: 2; pointer-events: none; white-space: pre; }
+        #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Syntax: Fixed Colors */
-        .sk-event { color: var(--pink); font-weight: bold; }
-        .sk-effect { color: var(--cyan); }
+        /* Mapped Syntax Colors */
+        .sk-ev { color: var(--pink); font-weight: bold; }
+        .sk-eff { color: var(--cyan); }
+        .sk-cond { color: var(--yellow); font-weight: bold; }
+        .sk-exp { color: var(--purple); }
+        .sk-item { color: var(--green); }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
-        .sk-string { color: var(--green); }
-        .sk-cond { color: var(--yellow); font-weight: bold; }
-        .sk-item { color: var(--purple); }
+        .sk-str { color: var(--green); opacity: 0.9; }
 
         /* Autocomplete */
         #autocomplete { position: absolute; display: none; background: var(--sidebar); border: 1px solid var(--purple); border-radius: 4px; z-index: 5000; max-height: 200px; overflow-y: auto; min-width: 250px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
@@ -59,30 +59,29 @@
         .suggest-item.active { background: var(--purple); color: #000; }
         
         .status-bar { height: 22px; background: var(--sidebar); border-top: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: var(--comment); justify-content: space-between; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
 <div id="autocomplete"></div>
 
-<div id="auth-modal" class="modal-overlay" style="display:flex;">
+<div id="auth-modal" style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
     <div style="background:var(--sidebar); padding:25px; border-radius:8px; border:1px solid var(--purple); width:300px;">
-        <h3 style="margin:0 0 15px 0; color:var(--purple)">Skript IDE Pro</h3>
+        <h3 style="margin:0 0 15px 0; color:var(--purple)">Skript IDE Full Spectrum</h3>
         <input type="text" id="auth-user" style="width:100%; padding:10px; background:#111; border:1px solid #333; color:white; margin-bottom:15px; box-sizing:border-box;" placeholder="Username">
-        <button class="tool-btn" style="width:100%; height:40px; background:var(--purple); color:black;" onclick="handleAuth()">LOGIN</button>
+        <button class="tool-btn" style="width:100%; height:40px; background:var(--purple); color:black;" onclick="handleAuth()">START CODING</button>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <span>EXPLORER</span>
+            <span>SCRIPTS</span>
             <button class="toggle-side" onclick="toggleSidebar()">«</button>
         </div>
         <div style="padding: 10px; display: flex; gap: 5px;">
-            <button class="tool-btn" style="flex:1" onclick="createNewProject()">+ NEW</button>
-            <button class="tool-btn" style="flex:1" onclick="document.getElementById('file-input').click()">OPEN</button>
+            <button class="tool-btn" style="flex:1" onclick="createFile()">+ NEW</button>
+            <button class="tool-btn" style="flex:1" onclick="document.getElementById('file-in').click()">OPEN</button>
         </div>
         <div class="project-list" id="project-list"></div>
     </div>
@@ -90,11 +89,10 @@
     <div class="main">
         <div class="toolbar">
             <button class="toggle-side" id="open-btn" style="display:none" onclick="toggleSidebar()">»</button>
-            <span id="current-filename" style="font-size: 12px; color: var(--purple); font-weight: bold;">script.sk</span>
+            <span id="cur-file" style="font-size: 12px; color: var(--purple); font-weight: bold;">untitled.sk</span>
             <div style="flex:1"></div>
-            <button class="tool-btn" onclick="runCheck()">DIAGNOSTIC</button>
-            <button class="tool-btn" onclick="exportFile()">EXPORT</button>
-            <button class="tool-btn btn-green" onclick="save(false)">SAVE</button>
+            <button class="tool-btn" onclick="exportSk()">EXPORT .SK</button>
+            <button class="tool-btn" style="color:var(--green)" onclick="saveSk(false)">SAVE</button>
         </div>
 
         <div class="editor-container">
@@ -112,173 +110,139 @@
     </div>
 </div>
 
-<input type="file" id="file-input" style="display:none" onchange="importFile(this)">
+<input type="file" id="file-in" style="display:none" onchange="importSk(this)">
 
 <script>
-    const elInput = document.getElementById('editing');
-    const elOutput = document.getElementById('highlighting');
+    const elIn = document.getElementById('editing');
+    const elOut = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
-    const elSuggest = document.getElementById('autocomplete');
-    
+    const elSug = document.getElementById('autocomplete');
+
     let user = null;
-    let currentFile = null;
-    let data = JSON.parse(localStorage.getItem('sk_pro_data')) || {};
-    let filtered = [];
-    let selIdx = 0;
+    let curFile = null;
+    let db = JSON.parse(localStorage.getItem('sk_full_spectrum')) || {};
 
-    // --- REBUILT PERFORMANCE DICTIONARY ---
-    const effects = ["set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel event", "teleport", "kill", "spawn", "give", "apply"];
-    const conditions = ["if", "else", "else if", "has permission", "exists", "is set", "is online"];
-    const events = ["on join:", "on quit:", "on chat:", "on death:", "on break:", "on place:", "on load:", "on rightclick:", "on leftclick:", "on command:"];
-    
-    // Autocomplete dictionary
-    const allWords = [];
-    effects.forEach(w => allWords.push({t:w, c:'eff'}));
-    conditions.forEach(w => allWords.push({t:w, c:'cond'}));
-    events.forEach(w => allWords.push({t:w, c:'ev'}));
+    // --- COLOR MAPPING SYSTEM ---
+    const colors = {
+        ev: ["on join:", "on quit:", "on death:", "on break:", "on place:", "on chat:", "on rightclick:", "on leftclick:", "on load:", "on command:", "on damage:", "command"],
+        eff: ["set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel", "teleport", "kill", "spawn", "give", "apply", "execute", "message"],
+        cond: ["if", "else", "else if", "has", "exists", "is", "contains", "while", "loop"],
+        exp: ["player", "victim", "attacker", "target", "location", "uuid", "name", "world", "now", "yesterday", "distance", "health", "metadata"],
+        item: ["stone", "diamond", "gold", "iron", "sword", "pickaxe", "axe", "shovel", "hoe", "grass", "dirt", "cobblestone", "apple", "tnt", "chest"]
+    };
 
-    // --- LOGIC ---
+    // Create a flat map for O(1) color lookup
+    const colorMap = {};
+    Object.keys(colors).forEach(cat => colors[cat].forEach(word => colorMap[word] = cat));
+
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         if(!u) return; user = u;
-        if(!data[user]) data[user] = { "Main.sk": "on join:\n\tsend \"&aHello!\"" };
+        if(!db[user]) db[user] = { "init.sk": "on join:\n\tsend \"&bColors Loaded!\"\n\tgive player diamond sword" };
         document.getElementById('auth-modal').style.display = 'none';
-        renderList(); load(Object.keys(data[user])[0]);
+        renderList(); load(Object.keys(db[user])[0]);
     }
 
+    function update() {
+        const code = elIn.value;
+        const lines = code.split('\n');
+        elGutter.innerHTML = lines.map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
+
+        // Tokenizer highlighting
+        let html = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        // 1. Comments (Highest priority)
+        html = html.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
+        // 2. Strings
+        html = html.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-str">$1</span>');
+        // 3. Variables
+        html = html.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
+
+        // 4. Keyword Mapping (Tokenizer)
+        // This splits by whitespace and punctuation but keeps them to reconstruct the string
+        const tokens = html.split(/(\s+|[.,:!?;])/);
+        const highlighted = tokens.map(token => {
+            const clean = token.toLowerCase();
+            if (colorMap[clean]) return `<span class="sk-${colorMap[clean]}">${token}</span>`;
+            // Special check for headers ending in colons
+            if (token.endsWith(':') && colorMap[clean.slice(0,-1)]) return `<span class="sk-${colorMap[clean.slice(0,-1)]}">${token}</span>`;
+            return token;
+        }).join('');
+
+        elOut.innerHTML = highlighted + (code.endsWith('\n') ? ' ' : '');
+        
+        const cur = code.substr(0, elIn.selectionStart).split("\n");
+        document.getElementById('cursor-pos').innerText = `Ln ${cur.length}, Col ${cur[cur.length-1].length + 1}`;
+    }
+
+    // --- STANDARD FEATURES ---
     function toggleSidebar() {
-        const s = document.getElementById('sidebar');
-        const b = document.getElementById('open-btn');
-        s.classList.toggle('collapsed');
-        b.style.display = s.classList.contains('collapsed') ? 'flex' : 'none';
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('open-btn').style.display = document.getElementById('sidebar').classList.contains('collapsed') ? 'block' : 'none';
     }
 
     function renderList() {
-        document.getElementById('project-list').innerHTML = Object.keys(data[user]).map(f => `
-            <div class="project-item ${currentFile === f ? 'active' : ''}" onclick="load('${f}')">📄 ${f}</div>
+        document.getElementById('project-list').innerHTML = Object.keys(db[user]).map(f => `
+            <div class="project-item ${curFile === f ? 'active' : ''}" onclick="load('${f}')">📄 ${f}</div>
         `).join('');
     }
 
     function load(f) {
-        currentFile = f; elInput.value = data[user][f];
-        document.getElementById('current-filename').innerText = f;
+        curFile = f; elIn.value = db[user][f];
+        document.getElementById('cur-file').innerText = f;
         update(); renderList();
     }
 
-    function save(silent=true) {
-        if(!user) return; data[user][currentFile] = elInput.value;
-        localStorage.setItem('sk_pro_data', JSON.stringify(data));
+    function saveSk(silent=true) {
+        if(!user) return; db[user][curFile] = elIn.value;
+        localStorage.setItem('sk_full_spectrum', JSON.stringify(db));
         document.getElementById('save-status').innerText = "Saved";
-        if(!silent) alert("Saved!");
+        if(!silent) alert("Project Sync Successful.");
     }
 
-    function update() {
-        let code = elInput.value;
-        // Gutter
-        const lines = code.split('\n');
-        elGutter.innerHTML = lines.map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
-        
-        // Highlighting Logic (Fixed Order)
-        let html = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        
-        // 1. Comments
-        html = html.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
-        // 2. Strings
-        html = html.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
-        // 3. Variables
-        html = html.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
-        // 4. Events / Command Headers
-        html = html.replace(/^(on\s+.*:|command\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        
-        // 5. Effects & Conditions (Keyword matching)
-        effects.forEach(k => { html = html.replace(new RegExp(`\\b${k}\\b`, 'g'), `<span class="sk-effect">${k}</span>`); });
-        conditions.forEach(k => { html = html.replace(new RegExp(`\\b${k}\\b`, 'g'), `<span class="sk-cond">${k}</span>`); });
-
-        elOutput.innerHTML = html + (code.endsWith('\n') ? ' ' : '');
-        
-        const cur = elInput.value.substr(0, elInput.selectionStart).split("\n");
-        document.getElementById('cursor-pos').innerText = `Ln ${cur.length}, Col ${cur[cur.length-1].length + 1}`;
-    }
-
-    function onInput() {
-        update();
-        document.getElementById('save-status').innerText = "Editing...";
-        const val = elInput.value;
-        const pos = elInput.selectionStart;
-        const lastWord = val.substring(0, pos).split(/[\s\t\n]+/).pop();
-
-        if (lastWord.length >= 2) {
-            filtered = allWords.filter(w => w.t.includes(lastWord.toLowerCase())).slice(0, 10);
-            if (filtered.length > 0) {
-                selIdx = 0; showSuggest(pos); return;
-            }
-        }
-        elSuggest.style.display = 'none';
-    }
-
-    function showSuggest(pos) {
-        const lines = elInput.value.substring(0, pos).split('\n');
-        elSuggest.style.display = 'block';
-        elSuggest.style.top = (lines.length * 22 + 45) + 'px';
-        elSuggest.style.left = (lines[lines.length-1].length * 8 + 50) + 'px';
-        elSuggest.innerHTML = filtered.map((s, i) => `
-            <div class="suggest-item ${i === selIdx ? 'active' : ''}" onclick="applySuggest('${s.t}')">
-                ${s.t} <small style="opacity:0.5">${s.c}</small>
-            </div>
-        `).join('');
-    }
-
-    function applySuggest(word) {
-        const pos = elInput.selectionStart;
-        const val = elInput.value;
-        const lastPart = val.substring(0, pos).split(/[\s\t\n]+/).pop();
-        elInput.value = val.substring(0, pos - lastPart.length) + word + val.substring(pos);
-        elSuggest.style.display = 'none';
-        update();
+    function onInput() { 
+        update(); 
+        document.getElementById('save-status').innerText = "Unsaved Changes...";
     }
 
     function onKey(e) {
-        if (elSuggest.style.display === 'block') {
-            if (e.key === 'ArrowDown') { e.preventDefault(); selIdx = (selIdx + 1) % filtered.length; showSuggest(elInput.selectionStart); return; }
-            if (e.key === 'ArrowUp') { e.preventDefault(); selIdx = (selIdx - 1 + filtered.length) % filtered.length; showSuggest(elInput.selectionStart); return; }
-            if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySuggest(filtered[selIdx].t); return; }
-        }
         if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, "\t"); }
         if (e.key === 'Enter') {
             e.preventDefault();
-            const lastLine = elInput.value.substring(0, elInput.selectionStart).split('\n').pop();
+            const lastLine = elIn.value.substring(0, elIn.selectionStart).split('\n').pop();
             const indent = lastLine.match(/^\s*/)[0];
             const extra = lastLine.trim().endsWith(':') ? '\t' : '';
             document.execCommand('insertText', false, '\n' + indent + extra);
         }
+        const pairs = {'{':'}', '[':']', '(':')', '"':'"'};
+        if (pairs[e.key]) {
+            e.preventDefault();
+            const start = elIn.selectionStart;
+            document.execCommand('insertText', false, e.key + pairs[e.key]);
+            elIn.selectionStart = elIn.selectionEnd = start + 1;
+        }
     }
 
     function syncScroll() {
-        elOutput.scrollTop = elInput.scrollTop;
-        elOutput.scrollLeft = elInput.scrollLeft;
-        elGutter.scrollTop = elInput.scrollTop;
+        elOut.scrollTop = elGutter.scrollTop = elIn.scrollTop;
+        elOut.scrollLeft = elIn.scrollLeft;
     }
 
-    function exportFile() {
-        const b = new Blob([elInput.value], {type:'text/plain'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = currentFile; a.click();
+    function exportSk() {
+        const blob = new Blob([elIn.value], {type:'text/plain'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = curFile; a.click();
     }
 
-    function createNewProject() {
-        const n = prompt("File name:");
-        if(n) { if(!n.endsWith(".sk")) n+=".sk"; data[user][n] = "# New Script"; load(n); }
+    function createFile() {
+        const n = prompt("Filename:");
+        if(n) { db[user][n] = "# New Script"; load(n); }
     }
 
-    function importFile(input) {
+    function importSk(input) {
         const f = input.files[0];
         const r = new FileReader();
-        r.onload = (e) => { data[user][f.name] = e.target.result; load(f.name); };
+        r.onload = (e) => { db[user][f.name] = e.target.result; load(f.name); };
         r.readAsText(f);
-    }
-
-    function runCheck() {
-        const errs = (elInput.value.match(/:[ \t]*\n(?![\t ]+)/g) || []).length;
-        alert(errs > 0 ? `Found ${errs} indentation errors after colons.` : "Basic structure looks good!");
     }
 </script>
 </body>
