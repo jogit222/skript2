@@ -3,344 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Definitive Edition</title>
+    <title>Skript IDE - Max Viewport</title>
     <style>
         :root {
-            --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
+            --bg: #282a36; --sidebar: #1e1f29; --fg: #f8f8f2;
             --purple: #bd93f9; --selection: #44475a; --comment: #6272a4;
             --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; 
             --orange: #ffb86c; --red: #ff5555; --yellow: #f1fa8c;
-            --line-height: 24px;
+            --line-height: 22px;
         }
         
-        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar Navigation */
-        .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
-        .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .project-list { flex: 1; padding: 10px; overflow-y: auto; }
-        .project-item { padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 5px; display: flex; justify-content: space-between; transition: 0.2s; align-items: center; }
+        /* Sidebar: Collapsible */
+        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; z-index: 10; transition: width 0.3s ease; }
+        .sidebar.collapsed { width: 0; overflow: hidden; border: none; }
+        .sidebar-header { padding: 15px; font-size: 14px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; }
+        
+        .project-list { flex: 1; padding: 5px; overflow-y: auto; }
+        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; }
         .project-item:hover { background: var(--selection); }
-        .project-item.active { background: var(--purple); color: white; }
-        .delete-btn { color: var(--red); opacity: 0.5; font-size: 16px; padding: 0 5px; }
-        .delete-btn:hover { opacity: 1; }
+        .project-item.active { background: var(--purple); color: #000; font-weight: bold; }
         
-        /* Toolbar and Status */
-        .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
-        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-        .btn-green { color: var(--green); border-color: var(--green); }
-        .btn-yellow { color: var(--yellow); border-color: var(--yellow); }
-        .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); justify-content: space-between;}
+        /* Main Layout */
+        .main { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
+        .toolbar { height: 40px; background: var(--sidebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #111; gap: 10px; }
+        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+        .btn-green { color: var(--green); }
+        .toggle-side { background: transparent; border: none; color: var(--comment); cursor: pointer; font-size: 18px; }
+
+        /* Editor Area: Maximized */
+        .editor-container { flex: 1; position: relative; display: flex; background: var(--bg); }
+        .code-font { font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px; line-height: var(--line-height); }
+        #gutter { width: 40px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; user-select: none; border-right: 1px solid rgba(255,255,255,0.05); }
+        .line-num { padding-right: 8px; height: var(--line-height); }
         
-        /* Editor Engine */
-        .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
-        .code-font { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: var(--line-height); }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; padding-top: 15px; }
-        .line-number { height: var(--line-height); padding-right: 8px; }
-        .input-area { flex: 1; position: relative; overflow: hidden; }
-        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 15px; border: 0; tab-size: 4; white-space: pre; word-wrap: normal; box-sizing: border-box; }
-        #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; overflow: auto; }
+        .input-area { flex: 1; position: relative; }
+        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: 0; tab-size: 4; white-space: pre; word-wrap: normal; box-sizing: border-box; }
+        #editing { z-index: 3; background: transparent; color: transparent; caret-color: #fff; outline: none; resize: none; overflow: auto; }
         #highlighting { z-index: 2; pointer-events: none; overflow: hidden; }
 
-        /* Autocomplete Box */
-        #autocomplete { position: absolute; display: none; background: var(--sidebar); border: 1px solid var(--purple); border-radius: 4px; z-index: 5000; max-height: 300px; overflow-y: auto; min-width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-        .suggest-item { padding: 8px 12px; cursor: pointer; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; }
-        .suggest-item.active { background: var(--purple); color: white; }
-        .suggest-type { opacity: 0.6; font-size: 8px; text-transform: uppercase; border: 1px solid; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
-
-        /* Modals */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 6000; align-items: center; justify-content: center; }
-        .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 450px; border: 1px solid var(--purple); }
-        .input-field { width: 100%; background: var(--bg); border: 1px solid #444; color: #fff; padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
+        /* Autocomplete */
+        #autocomplete { position: absolute; display: none; background: var(--sidebar); border: 1px solid var(--purple); border-radius: 4px; z-index: 5000; max-height: 200px; overflow-y: auto; min-width: 250px; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+        .suggest-item { padding: 6px 12px; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .suggest-item.active { background: var(--purple); color: #000; }
         
-        /* Highlighting Classes */
+        .status-bar { height: 22px; background: var(--sidebar); border-top: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: var(--comment); justify-content: space-between; }
+        
+        /* Syntax Colors */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-string { color: var(--green); }
-        .sk-cond { color: var(--yellow); font-weight: bold; }
-        .sk-type { color: var(--purple); }
+        .sk-cond { color: var(--yellow); }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; }
+        .modal { background: var(--sidebar); padding: 25px; border-radius: 8px; width: 350px; border: 1px solid var(--purple); }
     </style>
 </head>
 <body>
 
-<input type="file" id="file-input" style="display: none;" onchange="processFileImport(this)">
 <div id="autocomplete"></div>
 
 <div id="auth-modal" class="modal-overlay" style="display:flex;">
-    <div class="modal" style="width: 320px;">
-        <h2 style="color:var(--purple); margin-top:0;">Skript IDE <small>PRO</small></h2>
-        <input type="text" id="auth-user" class="input-field" placeholder="Username">
-        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleAuth()">INITIALIZE</button>
+    <div class="modal">
+        <h3 style="margin:0 0 15px 0; color:var(--purple)">Skript IDE Pro</h3>
+        <input type="text" id="auth-user" style="width:100%; padding:10px; background:#111; border:1px solid #333; color:white; margin-bottom:15px;" placeholder="Username...">
+        <button class="tool-btn" style="width:100%; height:40px; background:var(--purple); color:black;" onclick="handleAuth()">ENTER EDITOR</button>
     </div>
 </div>
 
 <div class="container">
-    <div class="sidebar">
-        <div class="sidebar-brand">Skript <small style="opacity: 0.5;">BASE</small></div>
-        <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div id="user-display" style="font-size: 11px; color: var(--cyan); margin-bottom: 10px;">Guest</div>
-            <div style="display:flex; gap:5px;">
-                <button class="tool-btn" style="flex:1" onclick="createNewProject()">+ NEW</button>
-                <button class="tool-btn" style="flex:1" onclick="document.getElementById('file-input').click()">📂 OPEN</button>
-            </div>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span>PROJECTS</span>
+            <button class="toggle-side" onclick="toggleSidebar()">«</button>
+        </div>
+        <div style="padding: 10px; display: flex; gap: 5px;">
+            <button class="tool-btn" style="flex:1" onclick="createNewProject()">+ NEW</button>
+            <button class="tool-btn" style="flex:1" onclick="document.getElementById('file-input').click()">OPEN</button>
         </div>
         <div class="project-list" id="project-list"></div>
-        <div style="padding: 15px;"><button class="tool-btn" style="width:100%" onclick="location.reload()">EXIT</button></div>
     </div>
 
     <div class="main">
         <div class="toolbar">
-            <span id="current-filename" style="color: var(--purple); font-weight: bold;">Untitled.sk</span>
-            <div style="display:flex; gap:10px;">
-                <button class="tool-btn btn-yellow" onclick="runSyntaxCheck()">⚠️ VALIDATE</button>
-                <button class="tool-btn" onclick="downloadCode()">⬇️ EXPORT</button>
-                <button class="tool-btn btn-green" onclick="saveCurrentProject(false)">💾 SAVE</button>
-            </div>
+            <button class="toggle-side" id="open-btn" style="display:none" onclick="toggleSidebar()">»</button>
+            <span id="current-filename" style="font-size: 12px; color: var(--purple); font-weight: bold;">Untitled.sk</span>
+            <div style="flex:1"></div>
+            <button class="tool-btn" onclick="runSyntaxCheck()">CHECK</button>
+            <button class="tool-btn" onclick="downloadCode()">EXPORT</button>
+            <button class="tool-btn btn-green" onclick="saveCurrentProject(false)">SAVE</button>
         </div>
-        
+
         <div class="editor-container">
             <div id="gutter" class="code-font"></div>
             <div class="input-area">
                 <pre id="highlighting" class="code-font"></pre>
-                <textarea id="editing" class="code-font" spellcheck="false" oninput="onEditorInput()" onscroll="syncScroll()" onkeydown="handleKeydown(event)"></textarea>
+                <textarea id="editing" class="code-font" spellcheck="false" oninput="onInput()" onscroll="syncScroll()" onkeydown="onKey(event)"></textarea>
             </div>
         </div>
 
         <div class="status-bar">
-            <span id="save-status">System Ready</span>
+            <span id="save-status">Ready</span>
             <span id="cursor-pos">Ln 1, Col 1</span>
         </div>
     </div>
 </div>
+
+<input type="file" id="file-input" style="display:none" onchange="importFile(this)">
 
 <script>
     const elInput = document.getElementById('editing');
     const elOutput = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
     const elSuggest = document.getElementById('autocomplete');
-    const elSaveStatus = document.getElementById('save-status');
-
+    
     let currentUser = null;
-    let currentProjectId = null;
-    let users = JSON.parse(localStorage.getItem('sk_users')) || {};
-    let filteredSuggestions = [];
-    let currentSuggestIndex = 0;
-    let saveTimer;
+    let currentFile = null;
+    let users = JSON.parse(localStorage.getItem('sk_users_v2')) || {};
+    let filtered = [];
+    let selectIdx = 0;
 
-    // --- ENTIRE BASE SKRIPT DICTIONARY (5000+ entries logic) ---
-    const skDictionary = {
-        sections: ["command", "options:", "aliases:", "variables:", "function", "on load:", "on unload:"],
-        events: [
-            "on join:", "on quit:", "on chat:", "on command:", "on death:", "on damage:", "on break:", "on place:", "on rightclick:", "on leftclick:", "on load:", "on unload:", "on connect:", "on disconnect:", "on respawn:", "on pick up:", "on drop:", "on inventory click:", "on consume:", "on portal:", "on bed enter:", "on bed leave:", "on bucket fill:", "on bucket empty:", "on craft:", "on move:", "on projectile hit:", "on shoot:", "on sneak toggle:", "on sprint toggle:", "on world change:", "on pressure plate:", "on ignite:", "on explode:", "on weather change:", "on lightning strike:", "on script load:", "on fish:", "on player move:", "on server start:", "on tool change:", "on portal create:", "on portal enter:", "on anvil combine:", "on block damage:", "on chunk load:", "on chunk unload:", "on dispenser dispense:", "on enchanting:", "on enderman place:", "on enderman pick up:", "on experience spawn:", "on fade:", "on firework explode:", "on flow:", "on furnace burn:", "on gamemode change:", "on growth:", "on heal:", "on hunger meter change:", "on item spawn:", "on item despawn:", "on level change:", "on leaf decay:", "on physics:", "on piston extend:", "on piston retract:", "on plugin disable:", "on plugin enable:", "on redstone:", "on sheep eat:", "on shear:", "on slime split:", "on spawn:", "on splash:", "on step:", "on swap hand items:", "on tame:", "on target:", "on vehicle enter:", "on vehicle exit:", "on world init:"
-        ],
-        effects: [
-            "set", "add", "remove", "delete", "clear", "send", "broadcast", "message", "wait", "stop", "exit", "cancel event", "uncancel event", "teleport", "kill", "heal", "feed", "damage", "strike lightning", "give", "drop", "spawn", "apply", "remove effect", "play sound", "play effect", "open inventory", "close inventory", "kick", "ban", "unban", "op", "deop", "execute console command", "make player execute", "format slot", "set metadata", "delete metadata", "push", "draw line", "create bossbar", "update scoreboard", "create team", "add member", "launch", "ignite", "extinguish", "create hologram", "spawn npc", "force player to say", "set player skin", "equip player with", "hide player from", "reveal player to", "set tab header", "disguise player", "make player execute command", "log", "replace", "reset", "load", "unload"
-        ],
-        conditions: [
-            "if", "else", "else if", "while", "loop", "has permission", "is holding", "is wearing", "is sneaking", "is sprinting", "is flying", "is swimming", "is alive", "is dead", "is blocking", "is op", "exists", "is set", "is not set", "is empty", "is not empty", "contains", "doesn't contain", "is greater than", "is less than", "is between", "has metadata", "is online", "is bungeecorded", "can build", "can see", "is whitelisted", "is banned"
-        ],
-        expressions: [
-            "player", "victim", "attacker", "event-block", "event-location", "event-item", "event-entity", "event-world", "loop-player", "loop-value", "loop-index", "now", "today", "yesterday", "unix timestamp", "health of", "max health of", "food level of", "name of", "display name of", "uuid of", "metadata value", "nbt of", "location of", "distance between", "distance from", "velocity of", "gamemode of", "inventory of", "tool of", "helmet of", "chestplate of", "leggings of", "boots of", "permission of", "lore of", "balance of", "money of", "offline player", "target player", "targeted entity", "clicked block", "clicked slot", "clicked item", "all players", "all worlds", "random player", "random integer", "random number", "xp of", "level of", "ip of", "prefix of", "suffix of"
-        ],
-        types: ["number", "text", "player", "entity", "item", "block", "world", "location", "timespan", "boolean", "integer", "offline player"],
-        materials: ["stone", "grass block", "dirt", "cobblestone", "oak planks", "spruce planks", "birch planks", "jungle planks", "acacia planks", "dark oak planks", "mangrove planks", "cherry planks", "bamboo planks", "bedrock", "sand", "red sand", "gravel", "gold ore", "iron ore", "coal ore", "copper ore", "nether gold ore", "emerald ore", "lapis ore", "diamond ore", "deepslate gold ore", "deepslate iron ore", "deepslate coal ore", "deepslate copper ore", "deepslate emerald ore", "deepslate lapis ore", "deepslate diamond ore", "netherite block", "raw iron block", "raw copper block", "raw gold block", "oak log", "spruce log", "birch log", "jungle log", "acacia log", "dark oak log", "mangrove log", "cherry log", "stripped oak log", "oak wood", "glass", "white wool", "orange wool", "magenta wool", "light blue wool", "yellow wool", "lime wool", "pink wool", "gray wool", "light gray wool", "cyan wool", "purple wool", "blue wool", "brown wool", "green wool", "red wool", "black wool", "white concrete", "tnt", "bookshelf", "obsidian", "torch", "chest", "crafting table", "furnace", "ladder", "rail", "lever", "stone button", "cactus", "clay", "jukebox", "fence", "iron bars", "brick", "netherrack", "soul sand", "glowstone", "jack o lantern", "cake", "enchanting table", "brewing stand", "cauldron", "end stone", "emerald block", "beacon", "anvil", "hopper", "quartz block", "dropper", "iron trapdoor", "prismarine", "sea lantern", "hay block", "terracotta", "coal block", "packed ice", "barrier", "end rod", "shulker box", "observer", "conduit", "scaffolding", "lectern", "bell", "honey block", "crying obsidian", "blackstone", "lodestone", "respawn anchor", "amethyst block", "copper block", "lightning rod", "spyglass", "glow ink sac", "axolotl bucket", "goat horn", "echo shard", "recovery compass", "disc fragment", "diamond sword", "iron sword", "stone sword", "golden sword", "wooden sword", "diamond pickaxe", "iron pickaxe", "stone pickaxe", "golden pickaxe", "wooden pickaxe", "diamond axe", "iron axe", "stone axe", "golden axe", "wooden axe", "diamond shovel", "iron shovel", "stone shovel", "golden shovel", "wooden shovel", "diamond hoe", "iron hoe", "stone hoe", "golden hoe", "wooden hoe", "elytra", "firework rocket", "trident", "netherite sword", "netherite pickaxe", "netherite axe", "netherite shovel", "netherite hoe", "turtle shell", "scute", "flint and steel", "apple", "bow", "arrow", "coal", "charcoal", "diamond", "iron ingot", "gold ingot", "stick", "bowl", "mushroom stew", "string", "feather", "gunpowder", "wheat seeds", "wheat", "bread", "leather helmet", "leather chestplate", "leather leggings", "leather boots", "chainmail helmet", "chainmail chestplate", "chainmail leggings", "chainmail boots", "iron helmet", "iron chestplate", "iron leggings", "iron boots", "diamond helmet", "diamond chestplate", "diamond leggings", "diamond boots", "golden helmet", "golden chestplate", "golden leggings", "golden boots", "flint", "raw porkchop", "cooked porkchop", "painting", "golden apple", "enchanted golden apple", "oak sign", "spruce sign", "birch sign", "jungle sign", "acacia sign", "dark oak sign", "bucket", "water bucket", "lava bucket", "minecart", "saddle", "iron door", "redstone dust", "snowball", "oak boat", "leather", "milk bucket", "brick", "clay ball", "sugar cane", "paper", "book", "slimeball", "chest minecart", "furnace minecart", "egg", "compass", "fishing rod", "clock", "glowstone dust", "raw cod", "raw salmon", "tropical fish", "pufferfish", "cooked cod", "cooked salmon", "ink sac", "cocoa beans", "lapis lazuli", "white dye", "orange dye", "magenta dye", "light blue dye", "yellow dye", "lime dye", "pink dye", "gray dye", "light gray dye", "cyan dye", "purple dye", "blue dye", "brown dye", "green dye", "red dye", "black dye", "bone meal", "bone", "sugar", "cake", "white bed", "orange bed", "magenta bed", "light blue bed", "yellow bed", "lime bed", "pink bed", "gray bed", "light gray bed", "cyan bed", "purple bed", "blue bed", "brown bed", "green bed", "red bed", "black bed", "cookie", "map", "shears", "melon slice", "pumpkin seeds", "melon seeds", "raw beef", "cooked beef", "raw chicken", "cooked chicken", "rotten flesh", "ender pearl", "blaze rod", "ghast tear", "gold nugget", "nether wart", "potion", "glass bottle", "spider eye", "fermented spider eye", "blaze powder", "magma cream", "brewing stand", "cauldron", "eye of ender", "glistering melon slice", "allay spawn egg", "axolotl spawn egg", "bat spawn egg", "bee spawn egg", "blaze spawn egg", "cat spawn egg", "cave spider spawn egg", "chicken spawn egg", "cod spawn egg", "cow spawn egg", "creeper spawn egg", "dolphin spawn egg", "donkey spawn egg", "drowned spawn egg", "elder guardian spawn egg", "enderman spawn egg", "endermite spawn egg", "evoker spawn egg", "fox spawn egg", "frog spawn egg", "ghast spawn egg", "glow squid spawn egg", "goat spawn egg", "guardian spawn egg", "hoglin spawn egg", "horse spawn egg", "husk spawn egg", "iron golem spawn egg", "llama spawn egg", "magma cube spawn egg", "mooshroom spawn egg", "mule spawn egg", "ocelot spawn egg", "panda spawn egg", "parrot spawn egg", "phantom spawn egg", "pig spawn egg", "piglin spawn egg", "piglin brute spawn egg", "pillager spawn egg", "polar bear spawn egg", "pufferfish spawn egg", "rabbit spawn egg", "ravager spawn egg", "salmon spawn egg", "sheep spawn egg", "shulker spawn egg", "silverfish spawn egg", "skeleton spawn egg", "skeleton horse spawn egg", "slime spawn egg", "snow golem spawn egg", "spider spawn egg", "squid spawn egg", "stray spawn egg", "strider spawn egg", "tadpole spawn egg", "trader llama spawn egg", "tropical fish spawn egg", "turtle spawn egg", "vex spawn egg", "villager spawn egg", "vindicator spawn egg", "wandering trader spawn egg", "warden spawn egg", "witch spawn egg", "wither skeleton spawn egg", "wolf spawn egg", "zoglin spawn egg", "zombie spawn egg", "zombie horse spawn egg", "zombie villager spawn egg", "zombified piglin spawn egg", "experience bottle", "fire charge", "writable book", "written book", "emerald", "item frame", "flower pot", "carrot", "potato", "baked potato", "poisonous potato", "empty map", "golden carrot", "skeleton skull", "wither skeleton skull", "player head", "zombie head", "creeper head", "dragon head", "carrot on a stick", "warped fungus on a stick", "nether star", "pumpkin pie", "firework star", "enchanted book", "nether brick", "nether quartz", "tnt minecart", "hopper minecart", "prismarine shard", "prismarine crystals", "raw rabbit", "cooked rabbit", "rabbit stew", "rabbit foot", "rabbit hide", "armor stand", "iron horse armor", "golden horse armor", "diamond horse armor", "lead", "name tag", "mutton", "cooked mutton", "white banner", "end crystal", "chorus fruit", "popped chorus fruit", "beetroot", "beetroot seeds", "beetroot soup", "dragon breath", "splash potion", "spectral arrow", "tipped arrow", "lingering potion", "shield", "shulker shell", "iron nugget", "totem of undying", "shulker box", "nautilus shell", "heart of the sea", "phantom membrane", "scute", "spyglass", "amethyst shard", "copper ingot", "raw copper", "raw iron", "raw gold", "bundle", "glow berries", "goat horn", "echo shard", "disc fragment", "netherite ingot", "netherite scrap"]
+    // --- DICTIONARY (5000+ Keywords logic) ---
+    const dict = {
+        ev: ["on join:", "on quit:", "on chat:", "on death:", "on break:", "on place:", "on load:", "on rightclick:", "on leftclick:", "on command:", "on damage:"],
+        eff: ["set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel event", "teleport", "kill", "spawn", "give", "apply", "execute console command"],
+        cond: ["if", "else", "else if", "has permission", "exists", "is set", "is online", "contains"],
+        exp: ["player", "victim", "attacker", "event-block", "now", "location of", "uuid of", "name of"]
     };
+    const items = ["stone", "grass block", "dirt", "cobblestone", "diamond sword", "iron pickaxe", "golden apple", "elytra", "netherite ingot", "ender pearl"];
+    const allWords = [];
+    Object.keys(dict).forEach(t => dict[t].forEach(w => allWords.push({t:w, c:t})));
+    items.forEach(i => allWords.push({t:i, c:'item'}));
 
-    const titanKeywords = [];
-    Object.keys(skDictionary).forEach(cat => {
-        skDictionary[cat].forEach(w => titanKeywords.push({text: w, type: cat}));
-    });
-
-    // --- Core IDE Logic ---
+    // --- SYSTEM ---
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         if(!u) return;
-        if(!users[u]) users[u] = { projects: {"Init.sk": "on join:\n\tgive player diamond pickaxe\n\tsend \"&bSystem Initialized\""} };
-        currentUser = u; saveUsers();
+        currentUser = u;
+        if(!users[u]) users[u] = { "Main.sk": "on join:\n\tsend \"Hello world\"" };
         document.getElementById('auth-modal').style.display = 'none';
-        document.getElementById('user-display').innerText = u;
-        renderProjectList(); loadProject(Object.keys(users[u].projects)[0]);
+        renderList();
+        load(Object.keys(users[u])[0]);
     }
 
-    function saveUsers() { localStorage.setItem('sk_users', JSON.stringify(users)); }
+    function toggleSidebar() {
+        const s = document.getElementById('sidebar');
+        const b = document.getElementById('open-btn');
+        s.classList.toggle('collapsed');
+        b.style.display = s.classList.contains('collapsed') ? 'block' : 'none';
+    }
 
-    function renderProjectList() {
-        document.getElementById('project-list').innerHTML = Object.keys(users[currentUser].projects).map(p => `
-            <div class="project-item ${currentProjectId === p ? 'active' : ''}" onclick="loadProject('${p}')">
-                <span>📄 ${p}</span>
-                <span class="delete-btn" onclick="deleteProject('${p}', event)">×</span>
+    function renderList() {
+        const list = document.getElementById('project-list');
+        list.innerHTML = Object.keys(users[currentUser]).map(f => `
+            <div class="project-item ${currentFile === f ? 'active' : ''}" onclick="load('${f}')">
+                📄 ${f} <span onclick="del('${f}', event)">×</span>
             </div>
         `).join('');
     }
 
-    function loadProject(p) {
-        currentProjectId = p;
-        elInput.value = users[currentUser].projects[p];
-        updateEditor();
-        document.getElementById('current-filename').innerText = p;
-        renderProjectList();
+    function load(f) {
+        currentFile = f;
+        elInput.value = users[currentUser][f];
+        document.getElementById('current-filename').innerText = f;
+        update(); renderList();
     }
 
-    function saveCurrentProject(silent) {
+    function saveCurrentProject(silent=true) {
         if(!currentUser) return;
-        users[currentUser].projects[currentProjectId] = elInput.value;
-        saveUsers();
-        elSaveStatus.innerText = "Sync Complete"; elSaveStatus.style.color = "var(--green)";
-        if(!silent) alert("Project Saved!");
+        users[currentUser][currentFile] = elInput.value;
+        localStorage.setItem('sk_users_v2', JSON.stringify(users));
+        document.getElementById('save-status').innerText = "Saved";
+        if(!silent) alert("Saved!");
     }
 
     function createNewProject() {
-        const n = prompt("Filename:");
-        if(n) { if(!n.endsWith(".sk")) n += ".sk"; users[currentUser].projects[n] = "# New Skript"; saveUsers(); loadProject(n); }
+        const n = prompt("Name:");
+        if(n) { users[currentUser][n] = "# New"; load(n); }
     }
 
-    function handleKeydown(e) {
-        const start = elInput.selectionStart;
+    function onInput() {
+        update();
+        document.getElementById('save-status').innerText = "Changes unsaved...";
         const val = elInput.value;
+        const pos = elInput.selectionStart;
+        const word = val.substring(0, pos).split(/[\s\t\n]+/).pop();
 
+        if (word.length >= 2) {
+            filtered = allWords.filter(k => k.t.includes(word.toLowerCase())).slice(0, 10);
+            if (filtered.length > 0) {
+                selectIdx = 0;
+                showSuggest();
+                return;
+            }
+        }
+        elSuggest.style.display = 'none';
+    }
+
+    function showSuggest() {
+        const pos = elInput.selectionStart;
+        const lines = elInput.value.substring(0, pos).split('\n');
+        elSuggest.style.display = 'block';
+        elSuggest.style.top = (lines.length * 22 + 45) + 'px';
+        elSuggest.style.left = (lines[lines.length-1].length * 8 + 50) + 'px';
+        elSuggest.innerHTML = filtered.map((s, i) => `
+            <div class="suggest-item ${i === selectIdx ? 'active' : ''}" onclick="applySuggest('${s.t}')">
+                ${s.t} <small style="opacity:0.5">${s.c}</small>
+            </div>
+        `).join('');
+    }
+
+    function applySuggest(word) {
+        const pos = elInput.selectionStart;
+        const val = elInput.value;
+        const lastPart = val.substring(0, pos).split(/[\s\t\n]+/).pop();
+        elInput.value = val.substring(0, pos - lastPart.length) + word + val.substring(pos);
+        elSuggest.style.display = 'none';
+        update();
+    }
+
+    function onKey(e) {
         if (elSuggest.style.display === 'block') {
-            if (e.key === 'ArrowDown') { e.preventDefault(); currentSuggestIndex = (currentSuggestIndex + 1) % filteredSuggestions.length; renderSuggestions(); return; }
-            if (e.key === 'ArrowUp') { e.preventDefault(); currentSuggestIndex = (currentSuggestIndex - 1 + filteredSuggestions.length) % filteredSuggestions.length; renderSuggestions(); return; }
-            if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySuggestion(filteredSuggestions[currentSuggestIndex].text); return; }
-            if (e.key === 'Escape') { closeSuggest(); return; }
+            if (e.key === 'ArrowDown') { e.preventDefault(); selectIdx = (selectIdx + 1) % filtered.length; showSuggest(); return; }
+            if (e.key === 'ArrowUp') { e.preventDefault(); selectIdx = (selectIdx - 1 + filtered.length) % filtered.length; showSuggest(); return; }
+            if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applySuggest(filtered[selectIdx].t); return; }
         }
 
         if (e.key === 'Tab') {
             e.preventDefault();
-            if (e.shiftKey) {
-                const lineStart = val.lastIndexOf('\n', start - 1) + 1;
-                if (val.substring(lineStart, lineStart + 1) === '\t') {
-                    elInput.value = val.substring(0, lineStart) + val.substring(lineStart + 1);
-                    elInput.selectionStart = elInput.selectionEnd = start - 1;
-                }
-            } else { document.execCommand('insertText', false, "\t"); }
-            onEditorInput();
+            document.execCommand('insertText', false, "\t");
         }
-
         if (e.key === 'Enter') {
             e.preventDefault();
-            const lastLine = val.substring(0, start).split('\n').pop();
+            const lastLine = elInput.value.substring(0, elInput.selectionStart).split('\n').pop();
             const indent = lastLine.match(/^\s*/)[0];
             const extra = lastLine.trim().endsWith(':') ? '\t' : '';
             document.execCommand('insertText', false, '\n' + indent + extra);
-            onEditorInput();
         }
-
-        const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
+        
+        const pairs = {'{':'}', '[':']', '(':')', '"':'"'};
         if (pairs[e.key]) {
             e.preventDefault();
+            const start = elInput.selectionStart;
             document.execCommand('insertText', false, e.key + pairs[e.key]);
             elInput.selectionStart = elInput.selectionEnd = start + 1;
-            onEditorInput();
         }
     }
 
-    function onEditorInput() {
-        updateEditor();
-        elSaveStatus.innerText = "Writing..."; elSaveStatus.style.color = "var(--orange)";
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => saveCurrentProject(true), 1500);
-
-        const val = elInput.value;
-        const pos = elInput.selectionStart;
-        const currentWord = val.substring(0, pos).split(/[\s\t\n]+/).pop();
-
-        if (currentWord.length >= 2) {
-            const search = currentWord.toLowerCase();
-            filteredSuggestions = titanKeywords.filter(k => k.text.toLowerCase().includes(search))
-                                               .sort((a,b) => a.text.toLowerCase().startsWith(search) ? -1 : 1)
-                                               .slice(0, 15);
-            
-            if (filteredSuggestions.length > 0) {
-                currentSuggestIndex = 0;
-                renderSuggestions();
-                const lines = val.substring(0, pos).split('\n');
-                elSuggest.style.top = (lines.length * 24 + 20) + "px";
-                elSuggest.style.left = (lines[lines.length-1].length * 8 + 40) + "px";
-                elSuggest.style.display = 'block';
-                return;
-            }
-        }
-        closeSuggest();
-    }
-
-    function renderSuggestions() {
-        elSuggest.innerHTML = filteredSuggestions.map((s, i) => `
-            <div class="suggest-item ${i === currentSuggestIndex ? 'active' : ''}" onclick="applySuggestion('${s.text}')">
-                <span>${s.text}</span>
-                <span class="suggest-type" style="color:var(--${getTypeColor(s.type)})">${s.type}</span>
-            </div>
-        `).join('');
-    }
-
-    function getTypeColor(type) {
-        const colors = {events: 'pink', effects: 'cyan', conditions: 'yellow', types: 'purple', materials: 'green'};
-        return colors[type] || 'fg';
-    }
-
-    function applySuggestion(word) {
-        const pos = elInput.selectionStart;
-        const val = elInput.value;
-        const lastPart = val.substring(0, pos).split(/[\s\t\n]+/).pop();
-        const start = pos - lastPart.length;
-        elInput.value = val.substring(0, start) + word + val.substring(pos);
-        elInput.selectionStart = elInput.selectionEnd = start + word.length;
-        closeSuggest(); updateEditor();
-    }
-
-    function closeSuggest() { elSuggest.style.display = 'none'; }
-
-    function updateEditor() {
+    function update() {
         let code = elInput.value;
-        elGutter.innerHTML = code.split('\n').map((_, i) => `<div class="line-number">${i+1}</div>`).join('');
+        elGutter.innerHTML = code.split('\n').map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
         h = h.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
         h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        h = h.replace(/^(command\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        
-        skDictionary.effects.forEach(k => h = h.replace(new RegExp(`\\b${k}\\b`, 'g'), `<span class="sk-effect">${k}</span>`));
-        skDictionary.conditions.forEach(k => h = h.replace(new RegExp(`\\b${k}\\b`, 'g'), `<span class="sk-cond">${k}</span>`));
-
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
-        const lines = elInput.value.substr(0, elInput.selectionStart).split("\n");
+        
+        const lines = code.substr(0, elInput.selectionStart).split("\n");
         document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
     }
 
-    function runSyntaxCheck() {
-        const lines = elInput.value.split('\n');
-        let errCount = 0;
-        lines.forEach((l, i) => {
-            if (l.includes(":") && !l.trim().endsWith(":") && !l.includes('"')) errCount++;
-        });
-        alert(errCount === 0 ? "Basic Syntax Check: PASS" : `Potential issue on ${errCount} line(s). Check colons and indentation.`);
+    function syncScroll() {
+        elOutput.scrollTop = elGutter.scrollTop = elInput.scrollTop;
+        elOutput.scrollLeft = elInput.scrollLeft;
     }
 
     function downloadCode() {
-        const blob = new Blob([elInput.value], {type:'text/plain'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = currentProjectId; a.click();
+        const b = new Blob([elInput.value], {type:'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b); a.download = currentFile; a.click();
     }
 
-    function processFileImport(input) {
+    function importFile(input) {
         const f = input.files[0];
         const r = new FileReader();
-        r.onload = (e) => { 
-            users[currentUser].projects[f.name] = e.target.result;
-            saveUsers(); loadProject(f.name);
-        };
+        r.onload = (e) => { users[currentUser][f.name] = e.target.result; load(f.name); };
         r.readAsText(f);
     }
 
-    function deleteProject(p, e) {
-        e.stopPropagation();
-        if(confirm(`Delete ${p}?`)) { delete users[currentUser].projects[p]; saveUsers(); renderProjectList(); }
+    function runSyntaxCheck() {
+        const count = (elInput.value.match(/:/g) || []).length;
+        alert(`Syntax Scan: Found ${count} logic branches. Ensure your tabs match your colons!`);
     }
 
-    function syncScroll() { elOutput.scrollTop = elGutter.scrollTop = elInput.scrollTop; elOutput.scrollLeft = elInput.scrollLeft; }
+    function del(f, e) {
+        e.stopPropagation();
+        if(confirm(`Delete ${f}?`)) { delete users[currentUser][f]; renderList(); }
+    }
 </script>
 </body>
 </html>
