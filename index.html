@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE Pro - Import/Export</title>
+    <title>Skript IDE Pro - Reflect Edition</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #21222c; --fg: #f8f8f2;
@@ -11,13 +11,17 @@
             --cyan: #8be9fd; --pink: #ff79c6; --green: #50fa7b; 
             --orange: #ffb86c; --red: #ff5555; --yellow: #f1fa8c;
             --blue: #61afef; --gui-gold: #e5c07b;
-            --line-height: 24px; /* GLOBAL MASTER HEIGHT */
+            /* New Reflect Colors */
+            --java-class: #8be9fd;
+            --java-method: #f1fa8c;
+            --reflect-keyword: #bd93f9;
+            --line-height: 24px;
         }
         
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Segoe UI', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar */
+        /* Sidebar & UI remains same as your previous version */
         .sidebar { width: 260px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.1); z-index: 10; }
         .sidebar-brand { padding: 20px; font-size: 18px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
         .project-list { flex: 1; padding: 10px; overflow-y: auto; }
@@ -25,7 +29,6 @@
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: white; }
         
-        /* Main */
         .main { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
         .toolbar { height: 50px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid rgba(255,255,255,0.1); justify-content: space-between; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
@@ -33,46 +36,28 @@
         .btn-green { color: var(--green); border-color: var(--green); }
         .btn-yellow { color: var(--yellow); border-color: var(--yellow); }
         .btn-cyan { color: var(--cyan); border-color: var(--cyan); }
+        
         .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); justify-content: space-between;}
         
-        /* --- ALIGNMENT ENGINE --- */
         .editor-container { flex: 1; position: relative; display: flex; overflow: hidden; }
-        
-        .code-font {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 14px;
-            line-height: var(--line-height);
-            letter-spacing: 0px;
-        }
+        .code-font { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px; line-height: var(--line-height); letter-spacing: 0px; }
 
-        #gutter { 
-            width: 45px; background: var(--sidebar); color: var(--comment); 
-            text-align: right; border-right: 1px solid rgba(255,255,255,0.1); 
-            user-select: none; box-sizing: border-box;
-            overflow: hidden; padding-top: 15px; padding-bottom: 15px;
-        }
-
+        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; border-right: 1px solid rgba(255,255,255,0.1); user-select: none; box-sizing: border-box; overflow: hidden; padding-top: 15px; padding-bottom: 15px; }
         .line-number { height: var(--line-height); line-height: var(--line-height); padding-right: 8px; }
         .input-area { flex: 1; position: relative; overflow: hidden; }
 
-        #editing, #highlighting { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            margin: 0; padding: 15px; border: 0; tab-size: 4; 
-            white-space: pre; word-wrap: normal; box-sizing: border-box; 
-        }
-
+        #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 15px; border: 0; tab-size: 4; white-space: pre; word-wrap: normal; box-sizing: border-box; }
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: var(--fg); outline: none; resize: none; overflow: auto; }
         #highlighting { z-index: 2; pointer-events: none; overflow: hidden; color: var(--fg); }
 
-        /* Modals & Highlights */
+        /* Modal Styles */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 3000; align-items: center; justify-content: center; }
         .modal { background: var(--sidebar); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--purple); max-height: 80vh; overflow-y: auto; display:flex; flex-direction:column; }
         .input-field { width: 100%; background: var(--bg); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 12px; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
-        .syntax-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
         .error-item { background: rgba(255, 85, 85, 0.1); border-left: 3px solid var(--red); padding: 10px; margin-bottom: 8px; font-size: 12px; }
         .warning-item { background: rgba(241, 250, 140, 0.1); border-left: 3px solid var(--yellow); padding: 10px; margin-bottom: 8px; font-size: 12px; }
-        .success-msg { color: var(--green); text-align: center; padding: 20px; font-weight: bold; font-size: 16px; }
 
+        /* Syntax Highlight Classes */
         .sk-event { color: var(--pink); font-weight: bold; }
         .sk-effect { color: var(--cyan); }
         .sk-var { color: var(--orange); }
@@ -80,62 +65,52 @@
         .sk-string { color: var(--green); }
         .sk-bracket { color: var(--purple); font-weight: bold; }
         .sk-gui { color: var(--gui-gold); font-weight: bold; }
-        .addon-badge { background: var(--gui-gold); color: #000; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-left: 10px; }
+        /* Reflect Specific Classes */
+        .sk-reflect-key { color: var(--reflect-keyword); font-weight: bold; }
+        .sk-java-class { color: var(--java-class); }
+        .sk-java-method { color: var(--java-method); font-style: italic; }
+        .addon-badge { background: var(--blue); color: #000; font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; margin-left: 10px; }
     </style>
 </head>
 <body>
 
-<input type="file" id="file-input" style="display: none;" accept=".sk,.txt" onchange="processFileImport(this)">
-
 <div id="auth-modal" class="modal-overlay" style="display:flex;">
     <div class="modal" style="width: 350px;">
-        <h2 id="auth-title" style="margin-top:0; color:var(--purple)">Welcome Back</h2>
+        <h2 style="margin-top:0; color:var(--purple)">Reflect Pro IDE</h2>
         <input type="text" id="auth-user" class="input-field" placeholder="Username">
         <input type="password" id="auth-pass" class="input-field" placeholder="Password">
-        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleAuth()">LOGIN / SIGN UP</button>
-        <p id="auth-msg" style="font-size: 11px; color: var(--red); margin-top: 10px;"></p>
+        <button class="tool-btn" style="width:100%; padding:12px; background:var(--purple); color:white; border:none;" onclick="handleAuth()">LAUNCH</button>
     </div>
 </div>
 
 <div id="syntax-modal" class="modal-overlay">
     <div class="modal">
-        <div class="syntax-header">
-            <h2 style="margin:0; color:var(--fg)">Syntax Report</h2>
-            <div id="syntax-score" style="font-weight:bold; color:var(--purple)"></div>
-        </div>
-        <div id="syntax-results" style="flex:1; overflow-y:auto;"></div>
-        <button class="tool-btn" style="width:100%; margin-top:15px;" onclick="document.getElementById('syntax-modal').style.display='none'">CLOSE REPORT</button>
+        <h2 style="margin:0; color:var(--fg)">Diagnostics</h2>
+        <div id="syntax-results" style="margin-top:20px; flex:1; overflow-y:auto;"></div>
+        <button class="tool-btn" style="width:100%; margin-top:15px;" onclick="document.getElementById('syntax-modal').style.display='none'">BACK TO CODE</button>
     </div>
 </div>
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-brand">
-            Skript IDE <small style="font-size: 10px; opacity: 0.5;">PRO</small>
-            <div style="font-size: 10px; color: var(--gui-gold); margin-top:5px;">✦ Import/Export</div>
-        </div>
+        <div class="sidebar-brand">Skript IDE <small style="opacity: 0.5;">REFLECT</small></div>
         <div style="padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05);">
             <div id="user-display" style="font-size: 12px; color: var(--cyan); margin-bottom: 10px;">User: Not Logged In</div>
             <div style="display:flex; gap:5px;">
                 <button class="tool-btn" style="flex:1" onclick="createNewProject()">+ NEW</button>
-                <button class="tool-btn btn-cyan" style="flex:1" onclick="triggerImport()">📂 OPEN</button>
             </div>
         </div>
         <div class="project-list" id="project-list"></div>
-        <div style="padding: 15px;">
-            <button class="tool-btn" style="width:100%" onclick="logout()">LOGOUT</button>
-        </div>
     </div>
 
     <div class="main">
         <div class="toolbar">
             <div style="display:flex; align-items:center;">
-                <span id="current-filename" style="color: var(--purple); font-weight: bold;">No file open</span>
-                <span id="addon-indicator" class="addon-badge" style="display:none;">GUI MODE</span>
+                <span id="current-filename" style="color: var(--purple); font-weight: bold;">Untitled.sk</span>
+                <span id="addon-indicator" class="addon-badge" style="display:none;">REFLECT MODE</span>
             </div>
             <div style="display:flex; gap:10px;">
-                <button class="tool-btn btn-yellow" onclick="runSyntaxCheck()">⚠️ CHECK</button>
-                <button class="tool-btn" onclick="downloadCode()">⬇️ DOWNLOAD</button>
+                <button class="tool-btn btn-yellow" onclick="runSyntaxCheck()">⚠️ DIAGNOSE</button>
                 <button class="tool-btn btn-green" onclick="saveCurrentProject(false)">💾 SAVE</button>
             </div>
         </div>
@@ -149,7 +124,7 @@
         </div>
 
         <div class="status-bar">
-            <span id="save-status">All changes saved</span>
+            <span id="save-status">Ready</span>
             <span id="cursor-pos">Ln 1, Col 1</span>
         </div>
     </div>
@@ -168,234 +143,46 @@
     let currentProjectId = null;
 
     const syntaxDB = {
-        core: ["command", "trigger:", "function", "return", "options:", "variables:", "aliases:", "on join:", "on quit:", "on load:", "on unload:", "on skript load:", "on damage:", "on death:", "on rightclick:", "on leftclick:", "on place:", "on break:", "on chat:", "on command:", "on drop:", "on pickup:", "on consume:", "on respawn:", "on connect:", "on disconnect:", "send", "broadcast", "set", "add", "remove", "delete", "clear", "wait", "stop", "cancel event", "apply", "teleport", "give", "drop", "spawn", "kill", "damage", "heal", "repair", "execute console command", "make player execute", "if", "else", "else if", "while", "loop", "loop-player", "loop-value", "loop-index", "loop-entity", "continue", "exit", "arg-1", "arg-2", "player", "victim", "attacker", "event-block", "event-location", "event-item", "uuid", "name of", "distance between", "location of", "metadata", "now", "unix timestamp", "health of", "max health of"],
-        skriptgui: ["create a gui with virtual chest inventory", "create a gui with virtual hopper inventory", "create a gui with virtual dropper inventory", "open last created gui", "open the last created gui", "edit gui", "edit last created gui", "make gui slot", "make next gui slot", "format gui slot", "to run:", "to close:", "to do nothing", "unstealable", "to nothing", "gui-inventory", "gui-slot", "gui-click-type", "gui-cursor", "gui-item", "gui-name", "run function", "from function", "change gui shape"],
-        addons: ["nbt compound", "nbt list", "set nbt", "spawn armor stand", "update score", "create team", "open virtual chest", "format slot", "open gui", "login to discord", "create embed", "send message", "reply with", "offline player", "permission", "parse", "replace", "contains"]
+        core: ["command", "trigger:", "function", "return", "options:", "variables:", "set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel event", "if", "else", "loop", "while", "player", "victim", "attacker", "arg-1", "arg-2"],
+        reflect: ["import", "new", "proxy", "handle", "custom event", "expression", "section", "property", "get", "set", "continue", "parse", "matched", "return", "invoke"],
+        javaClasses: ["String", "Object", "System", "Bukkit", "Player", "Entity", "Location", "Vector", "Material", "ItemStack", "Component", "Event"]
     };
 
-    // --- IMPORT / EXPORT FUNCTIONS ---
-    
-    // 1. Download
-    function downloadCode() {
-        if(!currentProjectId) return alert("Please create or open a project first.");
-        
-        const text = elInput.value;
-        const filename = currentProjectId.endsWith(".sk") ? currentProjectId : currentProjectId + ".sk";
-        
-        // Create Blob
-        const blob = new Blob([text], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        
-        // Create Fake Link
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = filename;
-        
-        document.body.appendChild(a);
-        a.click();
-        
-        // Cleanup
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-    }
+    // --- LOGIC UPDATES ---
 
-    // 2. Import (Trigger)
-    function triggerImport() {
-        document.getElementById('file-input').click();
-    }
-
-    // 3. Import (Process)
-    function processFileImport(input) {
-        if (input.files.length === 0) return;
-        
-        const file = input.files[0];
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            const content = e.target.result;
-            // Create a new project with file content
-            createNewProject(file.name, content);
-            // Reset input so same file can be selected again if needed
-            input.value = '';
-        };
-        
-        reader.readAsText(file);
-    }
-
-
-    // --- AUTH & PROJECT LOGIC ---
-    function handleAuth() {
-        const u = document.getElementById('auth-user').value.trim();
-        const p = document.getElementById('auth-pass').value.trim();
-        if(!u || !p) return;
-        if (users[u]) {
-            if (users[u].pass === p) login(u);
-            else document.getElementById('auth-msg').innerText = "Incorrect password!";
-        } else {
-            users[u] = { pass: p, projects: { "gui-test.sk": "command /gui:\n\ttrigger:\n\t\tsend \"Hello World\"" } };
-            saveUsers();
-            login(u);
-        }
-    }
-    function login(username) { currentUser = username; document.getElementById('auth-modal').style.display = 'none'; document.getElementById('user-display').innerText = "User: " + username; renderProjectList(); loadProject(Object.keys(users[username].projects)[0]); }
-    function logout() { location.reload(); }
-    function saveUsers() { localStorage.setItem('sk_users', JSON.stringify(users)); }
-
-    function renderProjectList() {
-        elProjList.innerHTML = "";
-        const projs = users[currentUser].projects;
-        Object.keys(projs).forEach(name => {
-            const div = document.createElement('div');
-            div.className = `project-item ${currentProjectId === name ? 'active' : ''}`;
-            div.innerHTML = `<span>📄 ${name}</span><span onclick="deleteProject('${name}', event)" style="color:var(--red)">×</span>`;
-            div.onclick = () => loadProject(name);
-            elProjList.appendChild(div);
-        });
-    }
-    function loadProject(name) {
-        if(!name) return;
-        currentProjectId = name;
-        elInput.value = users[currentUser].projects[name];
-        document.getElementById('current-filename').innerText = name;
-        updateEditor();
-        renderProjectList();
-    }
-    function saveCurrentProject(silent = false) {
-        if(!currentUser || !currentProjectId) return;
-        users[currentUser].projects[currentProjectId] = elInput.value;
-        saveUsers();
-        elSaveStatus.innerText = "All changes saved";
-        elSaveStatus.style.color = "var(--green)";
-        if(!silent) alert("Project Saved (Locally)!");
-    }
-    
-    // Updated Create Function to support Import
-    function createNewProject(nameOverride = null, contentOverride = null) {
-        let name = nameOverride;
-        
-        if (!name) {
-            name = prompt("Project Name (e.g., gui.sk):");
-        }
-        
-        if (name) {
-            // Prevent overwrite warning (simple version: just append copy)
-            if (users[currentUser].projects[name] && !confirm("Overwrite existing file " + name + "?")) {
-                return;
-            }
-            
-            users[currentUser].projects[name] = contentOverride !== null ? contentOverride : "# New Skript File\n";
-            saveUsers();
-            loadProject(name);
-        }
-    }
-
-    function deleteProject(name, e) {
-        e.stopPropagation();
-        if(confirm(`Delete ${name}?`)) {
-            delete users[currentUser].projects[name];
-            saveUsers();
-            renderProjectList();
-            if(currentProjectId === name) {
-                const keys = Object.keys(users[currentUser].projects);
-                if(keys.length > 0) loadProject(keys[0]);
-                else { currentProjectId = null; elInput.value = ""; }
-            }
-        }
-    }
-
-    // --- EDITOR INPUT HANDLER (Same as v6) ---
-    elInput.addEventListener('keydown', function(e) {
-        const start = this.selectionStart; const end = this.selectionEnd; const val = this.value;
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            if (e.shiftKey) {
-                const startLineIndex = val.lastIndexOf('\n', start - 1) + 1;
-                const endLineIndex = val.indexOf('\n', end);
-                const actualEnd = endLineIndex === -1 ? val.length : endLineIndex;
-                const selectedText = val.substring(startLineIndex, actualEnd);
-                const result = selectedText.split('\n').map(line => line.startsWith('\t') ? line.substring(1) : line).join('\n');
-                document.execCommand('insertText', false, result);
-                this.selectionStart = startLineIndex; this.selectionEnd = startLineIndex + result.length;
-            } else {
-                if (start !== end) {
-                    const startLineIndex = val.lastIndexOf('\n', start - 1) + 1;
-                    const endLineIndex = val.indexOf('\n', end);
-                    const actualEnd = endLineIndex === -1 ? val.length : endLineIndex;
-                    const selectedText = val.substring(startLineIndex, actualEnd);
-                    const result = selectedText.split('\n').map(line => '\t' + line).join('\n');
-                    this.setSelectionRange(startLineIndex, actualEnd);
-                    document.execCommand('insertText', false, result);
-                    this.setSelectionRange(startLineIndex, startLineIndex + result.length);
-                } else { document.execCommand('insertText', false, "\t"); }
-            }
-            onEditorInput();
-            return;
-        }
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const lastNewLine = val.lastIndexOf('\n', start - 1);
-            const lineStart = lastNewLine + 1;
-            const currentLine = val.substring(lineStart, start);
-            const match = currentLine.match(/^\s*/);
-            const currentIndent = match ? match[0] : "";
-            const trimmedLine = currentLine.trim();
-            let extraIndent = "";
-            if (trimmedLine.endsWith(':') || trimmedLine.endsWith('{')) extraIndent = "\t";
-            document.execCommand('insertText', false, "\n" + currentIndent + extraIndent);
-            onEditorInput();
-            return;
-        }
-        const pairs = {'{':'}', '[':']', '(':')', '"':'"', "'":"'"};
-        if (pairs[e.key]) {
-            e.preventDefault();
-            document.execCommand('insertText', false, e.key + pairs[e.key]);
-            this.selectionStart = this.selectionEnd = this.selectionStart - 1;
-            onEditorInput();
-        }
-    });
-
-    // --- SYNTAX, RENDER, SCROLL (Same as v6) ---
     function runSyntaxCheck() {
         const lines = elInput.value.split('\n');
         const errors = []; const warnings = [];
-        let context = { inLoop: false, loopDepth: 0, inTrigger: false, combatContext: false, commandDef: null };
-        const code = elInput.value;
-        if(code.includes("format slot") && code.includes("make gui slot")) warnings.push({line: "-", msg: "Mixing TuSKe and Skript-GUI syntax."});
+        let hasImportSection = false;
+        
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]; const trimmed = line.trim(); const indentLvl = line.search(/\S|$/); 
-            if (trimmed === "" || trimmed.startsWith("#")) continue;
-            if (indentLvl === 0) { context.loopDepth = 0; context.inTrigger = false; context.combatContext = false; context.commandDef = null; }
-            if (/^(command|trigger|if|else|loop|while|function|on \w+|options|variables)/.test(trimmed) && !trimmed.endsWith(":")) errors.push({line: i + 1, msg: "Missing colon ':'."});
-            if (trimmed.startsWith("command /")) context.commandDef = i;
-            if (trimmed.startsWith("trigger:")) { context.inTrigger = true; context.commandDef = null; }
-            if (trimmed.startsWith("on damage") || trimmed.startsWith("on death")) context.combatContext = true;
-            if (trimmed.startsWith("loop ") || trimmed.startsWith("while ")) context.loopDepth++;
-            if ((trimmed.includes("attacker") || trimmed.includes("victim")) && !context.combatContext) warnings.push({line: i + 1, msg: "'attacker'/'victim' used outside combat event."});
-            if ((trimmed.includes("loop-player") || trimmed.includes("loop-value")) && context.loopDepth === 0) errors.push({line: i + 1, msg: "Loop value used outside loop."});
-            if (i > 0) {
-                const prevLine = lines[i-1]; const prevTrimmed = prevLine.trim(); const prevIndent = prevLine.search(/\S|$/);
-                if (prevTrimmed.endsWith(":") && indentLvl <= prevIndent && prevTrimmed.length > 0 && !prevTrimmed.startsWith("#")) errors.push({line: i + 1, msg: "Expected indentation after line " + i});
+            const line = lines[i]; const trimmed = line.trim();
+            const indent = line.search(/\S|$/);
+
+            // Reflect Logic: Import placement
+            if (trimmed.startsWith("import:")) hasImportSection = true;
+            if (trimmed.startsWith("import ") && indent !== 0) {
+                errors.push({line: i+1, msg: "Java imports must be at the root level (no indentation)."});
+            }
+
+            // Reflect Logic: Constructor Parens
+            if (trimmed.includes("new ") && !trimmed.includes("(") && !trimmed.startsWith("#")) {
+                warnings.push({line: i+1, msg: "Java constructor 'new' usually requires parentheses."});
+            }
+
+            // Core Skript logic
+            if (/^(command|trigger|if|else|loop|while|function|on \w+|options|variables|import)/.test(trimmed) && !trimmed.endsWith(":")) {
+                if(!trimmed.startsWith("import ")) errors.push({line: i+1, msg: "Missing colon ':'."});
             }
         }
-        if (context.commandDef !== null) errors.push({line: context.commandDef + 1, msg: "Command defined without 'trigger:'."});
-        const modal = document.getElementById('syntax-modal');
-        const results = document.getElementById('syntax-results');
-        results.innerHTML = "";
-        if (errors.length === 0 && warnings.length === 0) results.innerHTML = `<div class="success-msg">✅ Perfect! No errors found.</div>`;
-        else {
-            errors.forEach(err => results.innerHTML += `<div class="error-item"><span class="error-line">Line ${err.line}</span> ${err.msg}</div>`);
-            warnings.forEach(warn => results.innerHTML += `<div class="warning-item"><span class="warning-line">Line ${warn.line}</span> ${warn.msg}</div>`);
-        }
-        modal.style.display = "flex";
-    }
 
-    function onEditorInput() {
-        updateEditor();
-        elSaveStatus.innerText = "Unsaved changes...";
-        elSaveStatus.style.color = "var(--orange)";
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => { saveCurrentProject(true); }, 2000);
+        const results = document.getElementById('syntax-results');
+        results.innerHTML = (errors.length === 0 && warnings.length === 0) 
+            ? `<div style="color:var(--green)">✓ No issues found in current buffer.</div>` 
+            : "";
+        errors.forEach(err => results.innerHTML += `<div class="error-item"><b>Line ${err.line}:</b> ${err.msg}</div>`);
+        warnings.forEach(warn => results.innerHTML += `<div class="warning-item"><b>Line ${warn.line}:</b> ${warn.msg}</div>`);
+        document.getElementById('syntax-modal').style.display = "flex";
     }
 
     function updateEditor() {
@@ -406,30 +193,100 @@
         elGutter.innerHTML = gutterHTML;
         
         let h = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        // 1. Strings & Comments
         h = h.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-string">$1</span>');
         h = h.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
+
+        // 2. Skript-Reflect Specific: Method calls like .getName()
+        h = h.replace(/(\.[a-zA-Z0-9_]+)(?=\()/g, '<span class="sk-java-method">$1</span>');
+
+        // 3. Skript-Reflect Specific: Java Class Names (Uppercase starting)
+        h = h.replace(/\b([A-Z][a-zA-Z0-9]+)\b/g, '<span class="sk-java-class">$1</span>');
+
+        // 4. Reflect Keywords
+        const reflectRegex = new RegExp(`\\b(${syntaxDB.reflect.join('|')})\\b`, 'g');
+        h = h.replace(reflectRegex, '<span class="sk-reflect-key">$1</span>');
+
+        // 5. Variables {var}
         h = h.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
-        h = h.replace(/^(on\s+.*:)/gm, '<span class="sk-event">$1</span>');
-        const coreSorted = syntaxDB.core.sort((a,b) => b.length - a.length);
-        const coreRegex = new RegExp(`\\b(${coreSorted.map(k => k.replace(/[^a-zA-Z0-9\-]/g, '\\$&')).join('|')})\\b`, 'g');
+
+        // 6. Core Skript Keywords
+        const coreRegex = new RegExp(`\\b(${syntaxDB.core.join('|').replace(/:/g, '')})\\b`, 'g');
         h = h.replace(coreRegex, '<span class="sk-effect">$1</span>');
-        const guiSorted = syntaxDB.skriptgui.sort((a,b) => b.length - a.length);
-        const guiRegex = new RegExp(`\\b(${guiSorted.map(k => k.replace(/ /g, '\\s+')).join('|')})`, 'g');
-        h = h.replace(guiRegex, '<span class="sk-gui">$1</span>');
+
+        // 7. Brackets
         h = h.replace(/[\(\)\[\]\{\}]/g, '<span class="sk-bracket">$&</span>');
-        document.getElementById('addon-indicator').style.display = guiSorted.some(k => code.includes(k)) ? 'inline-block' : 'none';
+
+        document.getElementById('addon-indicator').style.display = code.includes("import") || code.includes("proxy") ? 'inline-block' : 'none';
         elOutput.innerHTML = h + (code.endsWith('\n') ? ' ' : '');
-        setTimeout(() => {
-            const lines = elInput.value.substr(0, elInput.selectionStart).split("\n");
-            document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
-        }, 0);
+        
+        // Update Cursor Position
+        const lines = elInput.value.substr(0, elInput.selectionStart).split("\n");
+        document.getElementById('cursor-pos').innerText = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
     }
 
+    // --- SHARED UTILITIES ---
+    function handleAuth() {
+        const u = document.getElementById('auth-user').value.trim();
+        if(!u) return;
+        if (!users[u]) users[u] = { projects: { "ReflectionTest.sk": "import:\n\tjava.lang.System\n\non load:\n\tset {time} to System.currentTimeMillis()\n\tbroadcast \"Started at %{time}%\"" } };
+        currentUser = u;
+        saveUsers();
+        document.getElementById('auth-modal').style.display = 'none';
+        document.getElementById('user-display').innerText = "User: " + u;
+        renderProjectList();
+        loadProject(Object.keys(users[u].projects)[0]);
+    }
+    function saveUsers() { localStorage.setItem('sk_users', JSON.stringify(users)); }
+    function renderProjectList() {
+        elProjList.innerHTML = "";
+        Object.keys(users[currentUser].projects).forEach(name => {
+            const div = document.createElement('div');
+            div.className = `project-item ${currentProjectId === name ? 'active' : ''}`;
+            div.innerHTML = `<span>📄 ${name}</span>`;
+            div.onclick = () => loadProject(name);
+            elProjList.appendChild(div);
+        });
+    }
+    function loadProject(name) {
+        currentProjectId = name;
+        elInput.value = users[currentUser].projects[name];
+        document.getElementById('current-filename').innerText = name;
+        updateEditor();
+        renderProjectList();
+    }
+    function saveCurrentProject(silent = false) {
+        users[currentUser].projects[currentProjectId] = elInput.value;
+        saveUsers();
+        elSaveStatus.innerText = "Saved at " + new Date().toLocaleTimeString();
+    }
+    function onEditorInput() {
+        updateEditor();
+        elSaveStatus.innerText = "Typing...";
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => { saveCurrentProject(true); }, 1000);
+    }
     function syncScroll() {
-        elOutput.scrollTop = elInput.scrollTop;
-        elOutput.scrollLeft = elInput.scrollLeft;
+        elOutput.scrollTop = elInput.scrollTop; elOutput.scrollLeft = elInput.scrollLeft;
         elGutter.scrollTop = elInput.scrollTop;
     }
+    function createNewProject() {
+        const name = prompt("Filename:");
+        if (name) {
+            users[currentUser].projects[name] = "# New Reflect Script\nimport:\n\t";
+            loadProject(name);
+        }
+    }
+
+    // Tab & Enter Handling
+    elInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            document.execCommand('insertText', false, "\t");
+            onEditorInput();
+        }
+    });
 </script>
 </body>
 </html>
