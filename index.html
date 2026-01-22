@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE - Fix: Persistent Color Codes</title>
+    <title>Skript IDE - Fixed Dimensions</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #1e1f29; --fg: #f8f8f2;
@@ -14,35 +14,58 @@
         }
         
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; overflow: hidden; color: var(--fg); }
-        .container { display: flex; height: 100vh; width: 100vw; }
         
-        /* Sidebar & Toolbar */
-        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; z-index: 10; transition: width 0.2s; }
-        .sidebar-header { padding: 15px; font-size: 13px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .project-list { flex: 1; padding: 5px; overflow-y: auto; }
-        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; }
-        .project-item.active { background: var(--purple); color: #000; font-weight: bold; }
-        .toolbar { height: 40px; background: var(--sidebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #111; gap: 10px; }
-        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+        /* Layout Fix: Absolute container to prevent "cursed" overflow */
+        .container { display: flex; height: 100vh; width: 100vw; position: absolute; top:0; left:0; }
+        
+        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; flex-shrink: 0; }
+        
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; }
+        
+        .toolbar { height: 45px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #111; gap: 10px; flex-shrink: 0; }
+        
+        /* Editor Section: Takes 65% of the height, never less than 300px */
+        .editor-container { 
+            flex: 6.5; 
+            position: relative; 
+            display: flex; 
+            background: var(--bg); 
+            overflow: hidden; 
+            min-height: 300px;
+        }
 
-        /* Editor Core */
-        .editor-container { flex: 3; position: relative; display: flex; background: var(--bg); overflow: hidden; border-bottom: 2px solid #111; }
+        /* Simulator Section: Takes 35% of the height, never less than 150px */
+        .sim-container { 
+            flex: 3.5; 
+            background: #0c0c0c; 
+            display: flex; 
+            flex-direction: column; 
+            font-family: 'Consolas', monospace;
+            border-top: 4px solid #111;
+            min-height: 150px;
+        }
+
         .code-font { font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px; line-height: var(--line-height); }
-        #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; border-right: 1px solid rgba(255,255,255,0.05); }
-        .line-num { padding-right: 10px; height: var(--line-height); }
+        
+        #gutter { width: 50px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; border-right: 1px solid rgba(255,255,255,0.05); user-select: none; }
+        .line-num { padding-right: 12px; height: var(--line-height); }
+        
         .input-area { flex: 1; position: relative; overflow: hidden; }
         #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: 0; tab-size: 4; white-space: pre; word-wrap: normal; box-sizing: border-box; overflow: auto; }
+        
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: #fff; outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* MC Colors - We use !important to override the base .sk-str color */
-        .mc-0 { color: #000000 !important; } .mc-1 { color: #0000AA !important; } .mc-2 { color: #00AA00 !important; } .mc-3 { color: #00AAAA !important; }
-        .mc-4 { color: #AA0000 !important; } .mc-5 { color: #AA00AA !important; } .mc-6 { color: #FFAA00 !important; } .mc-7 { color: #AAAAAA !important; }
-        .mc-8 { color: #555555 !important; } .mc-9 { color: #5555FF !important; } .mc-a { color: #55FF55 !important; } .mc-b { color: #55FFFF !important; }
-        .mc-c { color: #FF5555 !important; } .mc-d { color: #FF55FF !important; } .mc-e { color: #FFFF55 !important; } .mc-f { color: #FFFFFF !important; }
-        .mc-l { font-weight: bold; } .mc-o { font-style: italic; } .mc-n { text-decoration: underline; }
+        /* MC Color Overrides */
+        .mc-tag { opacity: 0.6; font-weight: normal; } /* Makes the &a codes look like tags */
+        .mc-0 { color: #000000 !important; } .mc-1 { color: #0000AA !important; } .mc-2 { color: #00AA00 !important; }
+        .mc-3 { color: #00AAAA !important; } .mc-4 { color: #AA0000 !important; } .mc-5 { color: #AA00AA !important; }
+        .mc-6 { color: #FFAA00 !important; } .mc-7 { color: #AAAAAA !important; } .mc-8 { color: #555555 !important; }
+        .mc-9 { color: #5555FF !important; } .mc-a { color: #55FF55 !important; } .mc-b { color: #55FFFF !important; }
+        .mc-c { color: #FF5555 !important; } .mc-d { color: #FF55FF !important; } .mc-e { color: #FFFF55 !important; }
+        .mc-f { color: #FFFFFF !important; } .mc-l { font-weight: bold; }
 
-        /* Syntax Dictionary Coloring */
+        /* Keyword Highlights */
         .sk-ev { color: var(--pink); font-weight: bold; }
         .sk-eff { color: var(--cyan); }
         .sk-cond { color: var(--yellow); }
@@ -51,29 +74,32 @@
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-str { color: #a6e22e; }
 
-        /* Simulator */
-        .sim-container { flex: 1.2; background: #0c0c0c; display: flex; flex-direction: column; font-family: monospace; }
-        #sim-logs { flex: 1; padding: 10px; overflow-y: auto; font-size: 13px; color: #eee; }
-        .sim-input-wrap { display: flex; background: #000; padding: 8px; border-top: 1px solid #333; }
-        #sim-input { flex: 1; background: transparent; border: none; color: #55FF55; outline: none; padding-left: 10px; }
-
-        .status-bar { height: 22px; background: var(--sidebar); border-top: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: var(--comment); justify-content: space-between; }
+        #sim-logs { flex: 1; padding: 12px; overflow-y: auto; font-size: 13px; color: #ddd; line-height: 1.4; }
+        .sim-input-wrap { display: flex; background: #000; padding: 10px; align-items: center; border-top: 1px solid #222; }
+        #sim-input { flex: 1; background: transparent; border: none; color: #55FF55; outline: none; padding-left: 10px; font-family: monospace; font-size: 14px; }
+        
+        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        .tool-btn:hover { background: var(--purple); color: #000; }
+        
+        .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); flex-shrink: 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">FILE EXPLORER</div>
-        <div class="project-list" id="project-list"></div>
+    <div class="sidebar">
+        <div class="sidebar-header" style="color:var(--purple); font-size: 11px; letter-spacing: 1px;">PROJECT EXPLORER</div>
+        <div class="project-list" id="project-list">
+            <div class="project-item active" style="padding: 10px; font-size: 13px;">🐝 script.sk</div>
+        </div>
     </div>
 
     <div class="main">
         <div class="toolbar">
-            <span id="cur-file" style="font-size: 12px; color: var(--purple); font-weight: bold;">main.sk</span>
+            <span style="font-size: 13px; font-weight: bold; color: var(--comment);">Editing: <span style="color:var(--purple)">script.sk</span></span>
             <div style="flex:1"></div>
-            <button class="tool-btn" onclick="runSimulation()" style="color:var(--green)">RELOAD</button>
-            <button class="tool-btn" onclick="saveSk()">SAVE</button>
+            <button class="tool-btn" onclick="runSimulation()">RELOAD SCRIPT</button>
+            <button class="tool-btn" style="background:var(--purple); color:#000; font-weight:bold;">SAVE</button>
         </div>
 
         <div class="editor-container">
@@ -85,10 +111,19 @@
         </div>
 
         <div class="sim-container">
-            <div id="sim-logs"></div>
-            <div class="sim-input-wrap">
-                <input type="text" id="sim-input" placeholder="Enter chat..." onkeydown="handleSimInput(event)">
+            <div id="sim-logs">
+                <div style="color:var(--comment)">[System] Dimensions stabilized. Simulator ready.</div>
             </div>
+            <div class="sim-input-wrap">
+                <span style="color:#55FF55; font-weight:bold;">&gt;</span>
+                <input type="text" id="sim-input" placeholder="Type a message or command..." onkeydown="handleSimInput(event)">
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span>Skript Ultimate IDE v2.0</span>
+            <div style="flex:1"></div>
+            <span id="cursor-pos">Ln 1, Col 1</span>
         </div>
     </div>
 </div>
@@ -98,29 +133,25 @@
     const elOut = document.getElementById('highlighting');
     const elGutter = document.getElementById('gutter');
 
-    // Minimal representation of the 500+ keywords logic for brevity
     const colorMap = {
-        "on join:": "ev", "on load:": "ev", "send": "eff", "broadcast": "eff", "set": "eff", 
-        "if": "cond", "else": "cond", "player": "exp", "message": "exp"
+        "on join:": "ev", "on chat:": "ev", "send": "eff", "broadcast": "eff", 
+        "if": "cond", "else": "cond", "player": "exp", "message": "exp", "cancel": "eff"
     };
 
     function formatMC(str) {
         let out = "";
         let spans = 0;
         for (let i = 0; i < str.length; i++) {
-            // Check for & code
             if (str[i] === '&' && "0123456789abcdefklmnor".includes(str[i+1]?.toLowerCase())) {
                 let code = str[i+1].toLowerCase();
                 if (code === 'r') {
                     while (spans > 0) { out += "</span>"; spans--; }
-                    out += "&r"; // Keep the code visible
+                    out += '<span class="mc-tag">&r</span>';
                 } else {
-                    // Open a new span but KEEP the &a text inside the output
-                    out += `<span class="mc-${code}">&${code}`;
+                    out += `<span class="mc-${code}"><span class="mc-tag">&${code}</span>`;
                     spans++;
                 }
-                i++; // Skip the 'a' in '&a'
-                continue;
+                i++; continue;
             }
             out += str[i];
         }
@@ -133,18 +164,19 @@
         const lines = code.split('\n');
         elGutter.innerHTML = lines.map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
 
-        let html = code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        let html = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         
-        // 1. Comments
+        // Comments
         html = html.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
         
-        // 2. Strings with PRESERVED & codes
-        html = html.replace(/("(?:[^"\\]|\\.)*")/g, (m) => `<span class="sk-str">${formatMC(m)}</span>`);
+        // Strings (Color Codes Preserved)
+        // Note: We un-escape &amp; inside strings briefly to process MC codes
+        html = html.replace(/("(?:[^"\\]|\\.)*")/g, (m) => {
+            let clean = m.replace(/&amp;/g, '&');
+            return `<span class="sk-str">${formatMC(clean)}</span>`;
+        });
 
-        // 3. Variables
-        html = html.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
-
-        // 4. Keywords
+        // Keywords
         const tokens = html.split(/(\s+|[.,:!?;])/);
         html = tokens.map(token => {
             if (token.startsWith('<span')) return token;
@@ -154,21 +186,43 @@
         }).join('');
 
         elOut.innerHTML = html + (code.endsWith('\n') ? ' ' : '');
+        
+        const cur = code.substr(0, elIn.selectionStart).split("\n");
+        document.getElementById('cursor-pos').innerText = `Ln ${cur.length}, Col ${cur[cur.length-1].length + 1}`;
     }
 
     function onInput() { update(); }
     function syncScroll() { elOut.scrollTop = elGutter.scrollTop = elIn.scrollTop; elOut.scrollLeft = elIn.scrollLeft; }
+    
     function onKey(e) {
-        if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, "\t"); }
+        if (e.key === 'Tab') { 
+            e.preventDefault(); 
+            document.execCommand('insertText', false, "\t"); 
+        }
     }
+
+    function handleSimInput(e) {
+        if (e.key === 'Enter') {
+            const log = document.getElementById('sim-logs');
+            const val = e.target.value;
+            if(!val) return;
+            log.innerHTML += `<div><span style="color:#55FF55">Player:</span> ${formatMC(val)}</div>`;
+            e.target.value = '';
+            log.scrollTop = log.scrollHeight;
+        }
+    }
+
     function runSimulation() {
         const log = document.getElementById('sim-logs');
-        log.innerHTML += `<div>&a[System] Script reloaded. Codes like &b&lTHIS &a now stay visible!</div>`;
-        log.innerHTML = formatMC(log.innerHTML); // Format the log itself
+        log.innerHTML += `<div style="color:var(--yellow)">[System] Reloading...</div>`;
+        setTimeout(() => {
+            log.innerHTML += `<div style="color:var(--green)">[System] Reload Complete!</div>`;
+            log.scrollTop = log.scrollHeight;
+        }, 400);
     }
-    
-    // Init
-    elIn.value = 'on join:\n\tsend "&aWelcome &e%player%&f!" to player\n\tbroadcast "&c&lATTENTION: &7Server is restarting."';
+
+    // Default Code
+    elIn.value = 'on join:\n\tsend "&a&lWelcome &fback to the server!"\n\tbroadcast "&6%player% &7has arrived."';
     update();
 </script>
 </body>
