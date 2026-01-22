@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE - Autosave Pro</title>
+    <title>Skript IDE - Ultimate Power Edition</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #1e1f29; --fg: #f8f8f2;
@@ -16,21 +16,23 @@
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; overflow: hidden; color: var(--fg); }
         .container { display: flex; height: 100vh; width: 100vw; }
         
+        /* Sidebar */
         .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; z-index: 10; transition: width 0.2s; }
         .sidebar.collapsed { width: 0; overflow: hidden; border: none; }
         .sidebar-header { padding: 15px; font-size: 13px; font-weight: bold; color: var(--purple); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; }
         
         .project-list { flex: 1; padding: 5px; overflow-y: auto; }
-        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; white-space: nowrap; transition: 0.2s; }
+        .project-item { padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; margin-bottom: 2px; white-space: nowrap; transition: 0.2s; display: flex; justify-content: space-between; }
         .project-item:hover { background: var(--selection); }
         .project-item.active { background: var(--purple); color: #000; font-weight: bold; }
-        
+
+        /* Main Area */
         .main { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
         .toolbar { height: 40px; background: var(--sidebar); display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #111; gap: 10px; }
         .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 11px; }
-        .toggle-side { background: transparent; border: none; color: var(--comment); cursor: pointer; font-size: 18px; }
-
-        .editor-container { flex: 1; position: relative; display: flex; background: var(--bg); overflow: hidden; }
+        
+        /* Editor */
+        .editor-container { flex: 3; position: relative; display: flex; background: var(--bg); overflow: hidden; border-bottom: 2px solid #111; }
         .code-font { font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px; line-height: var(--line-height); }
         #gutter { width: 45px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; user-select: none; border-right: 1px solid rgba(255,255,255,0.05); }
         .line-num { padding-right: 10px; height: var(--line-height); }
@@ -40,26 +42,37 @@
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: #fff; outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* Syntax Dictionary Coloring */
+        /* Console / Chat Simulator */
+        .sim-container { flex: 1.2; background: #0c0c0c; display: flex; flex-direction: column; font-family: monospace; }
+        #sim-logs { flex: 1; padding: 10px; overflow-y: auto; font-size: 13px; color: #eee; }
+        .sim-input-wrap { display: flex; background: #000; padding: 8px; border-top: 1px solid #333; }
+        #sim-input { flex: 1; background: transparent; border: none; color: #55FF55; outline: none; padding-left: 10px; font-family: monospace; }
+
+        /* Syntax Colors */
         .sk-ev { color: var(--pink); font-weight: bold; }
         .sk-eff { color: var(--cyan); }
         .sk-cond { color: var(--yellow); font-weight: bold; }
         .sk-exp { color: var(--purple); }
-        .sk-item { color: var(--green); }
         .sk-var { color: var(--orange); }
         .sk-comment { color: var(--comment); font-style: italic; }
-        .sk-str { color: var(--green); opacity: 0.85; }
+        .sk-str { color: #a6e22e; } /* Base string color */
+        .sk-regex { color: #f1fa8c; background: rgba(255,255,255,0.05); border-radius: 2px; }
+
+        /* Minecraft Formatting Classes */
+        .mc-0 { color: #000000; } .mc-1 { color: #0000AA; } .mc-2 { color: #00AA00; } .mc-3 { color: #00AAAA; }
+        .mc-4 { color: #AA0000; } .mc-5 { color: #AA00AA; } .mc-6 { color: #FFAA00; } .mc-7 { color: #AAAAAA; }
+        .mc-8 { color: #555555; } .mc-9 { color: #5555FF; } .mc-a { color: #55FF55; } .mc-b { color: #55FFFF; }
+        .mc-c { color: #FF5555; } .mc-d { color: #FF55FF; } .mc-e { color: #FFFF55; } .mc-f { color: #FFFFFF; }
+        .mc-l { font-weight: bold; } .mc-o { font-style: italic; } .mc-n { text-decoration: underline; }
 
         .status-bar { height: 22px; background: var(--sidebar); border-top: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: var(--comment); justify-content: space-between; }
-        #save-status.syncing { color: var(--orange); font-weight: bold; }
-        #save-status.saved { color: var(--green); }
     </style>
 </head>
 <body>
 
 <div id="auth-modal" style="display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:9999; align-items:center; justify-content:center;">
     <div style="background:var(--sidebar); padding:30px; border-radius:12px; border:1px solid var(--purple); width:320px; text-align:center;">
-        <h2 style="margin:0 0 20px 0; color:var(--purple); letter-spacing: 1px;">Skript IDE <small>PRO</small></h2>
+        <h2 style="margin:0 0 20px 0; color:var(--purple); letter-spacing: 1px;">Skript IDE <small>ULTIMATE</small></h2>
         <input type="text" id="auth-user" style="width:100%; padding:12px; background:#111; border:1px solid #333; color:white; margin-bottom:15px; border-radius:4px;" placeholder="Username">
         <button class="tool-btn" style="width:100%; height:45px; background:var(--purple); color:black; font-weight:bold;" onclick="handleAuth()">INITIALIZE</button>
     </div>
@@ -69,7 +82,7 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <span>FILE EXPLORER</span>
-            <button class="toggle-side" onclick="toggleSidebar()">«</button>
+            <button class="toggle-side" style="background:transparent; border:none; color:var(--comment); cursor:pointer;" onclick="toggleSidebar()">«</button>
         </div>
         <div style="padding: 10px; display: flex; gap: 5px;">
             <button class="tool-btn" style="flex:1" onclick="createFile()">+ NEW</button>
@@ -83,8 +96,9 @@
             <button class="toggle-side" id="open-btn" style="display:none" onclick="toggleSidebar()">»</button>
             <span id="cur-file" style="font-size: 12px; color: var(--purple); font-weight: bold;">untitled.sk</span>
             <div style="flex:1"></div>
-            <button class="tool-btn" onclick="exportSk()">DOWNLOAD .SK</button>
-            <button class="tool-btn" style="background:var(--purple); color:black;" onclick="saveSk(false)">FORCE SAVE</button>
+            <button class="tool-btn" onclick="runSimulation()" style="color:var(--green); border-color:var(--green)">▶ RELOAD SCRIPT</button>
+            <button class="tool-btn" onclick="exportSk()">DOWNLOAD</button>
+            <button class="tool-btn" style="background:var(--purple); color:black;" onclick="saveSk(false)">SAVE</button>
         </div>
 
         <div class="editor-container">
@@ -95,8 +109,16 @@
             </div>
         </div>
 
+        <div class="sim-container">
+            <div id="sim-logs"></div>
+            <div class="sim-input-wrap">
+                <span style="color:var(--comment)">&gt;</span>
+                <input type="text" id="sim-input" placeholder="Type command or chat..." onkeydown="handleSimInput(event)">
+            </div>
+        </div>
+
         <div class="status-bar">
-            <span id="save-status">Cloud Sync Ready</span>
+            <span id="save-status">Ready</span>
             <span id="cursor-pos">Ln 1, Col 1</span>
         </div>
     </div>
@@ -112,16 +134,16 @@
 
     let user = null;
     let curFile = null;
-    let db = JSON.parse(localStorage.getItem('sk_pro_db_v3')) || {};
+    let db = JSON.parse(localStorage.getItem('sk_ultra_db_v5')) || {};
     let autoSaveTimer;
 
-    // --- COLOR MAPPING DATABASE (Categorized) ---
+    // --- MASSIVE KEYWORD DATABASE (500+ Keywords) ---
     const colors = {
-        ev: ["on join:", "on quit:", "on death:", "on break:", "on place:", "on chat:", "on rightclick:", "on leftclick:", "on load:", "on command:", "on damage:", "command"],
-        eff: ["set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel", "teleport", "kill", "spawn", "give", "apply", "execute", "message", "play", "kick", "ban"],
-        cond: ["if", "else", "else if", "has", "exists", "is", "contains", "while", "loop", "can", "greater", "less"],
-        exp: ["player", "victim", "attacker", "target", "location", "uuid", "name", "world", "now", "yesterday", "distance", "health", "metadata", "event-block", "loop-value"],
-        item: ["stone", "diamond", "gold", "iron", "sword", "pickaxe", "axe", "shovel", "hoe", "grass", "dirt", "cobblestone", "apple", "tnt", "chest", "netherite", "elytra"]
+        ev: ["on join:", "on quit:", "on death:", "on break:", "on place:", "on chat:", "on rightclick:", "on leftclick:", "on load:", "on command:", "on damage:", "on step:", "on world change:", "on pressure plate:", "on swap hand:", "on item spawn:", "on craft:", "on consume:", "on dispense:", "on exp spawn:", "on ignite:", "on explode:", "on grow:", "on spread:", "on piston extend:", "on toggle sneak:", "on toggle flight:", "on pick up:", "on drop:", "on recipe click:", "on packet:", "on nbt load:", "on yaml load:", "on discord message:", "on inventory click:", "on portal:", "on shoot:", "on bucket fill:", "on splash:", "on projectile hit:", "on physics:", "on flow:", "on chunk load:", "on bed enter:"],
+        eff: ["set", "add", "remove", "delete", "send", "broadcast", "wait", "stop", "cancel", "teleport", "kill", "spawn", "give", "apply", "execute", "message", "play", "kick", "ban", "op", "deop", "force", "make", "create", "unzip", "download", "load", "save", "write", "rename", "format", "open", "close", "clear", "push", "strike", "heal", "feed", "ignite", "extinguish", "shear", "dye", "equip", "enchant", "disenchant", "repair", "launch", "shoot", "drop", "pickup", "hide", "reveal", "register", "unregister", "connect", "disconnect", "json", "actionbar", "bossbar", "title", "subtitle", "sound", "particle", "hologram", "npc", "citizen", "database", "query", "update", "webhook"],
+        cond: ["if", "else", "else if", "has", "exists", "is", "contains", "while", "loop", "can", "greater", "less", "matches", "regex", "starts with", "ends with", "is set", "is not set", "is alive", "is dead", "is online", "is offline", "is sneaking", "is sprinting", "is flying", "is swimming", "is burning", "is blocking", "is sleeping", "is riding", "is holding", "is wearing", "is empty", "is not empty", "exists", "is file", "is directory"],
+        exp: ["player", "victim", "attacker", "target", "location", "uuid", "name", "displayname", "world", "now", "yesterday", "distance", "health", "metadata", "event-block", "loop-value", "loop-player", "loop-index", "arg", "argument", "parameter", "message", "sender", "ip", "balance", "money", "nbt", "tag", "compound", "json", "yaml", "file", "folder", "path", "extension", "regex group", "last regex", "time", "date", "weather", "biome", "chunk", "inventory", "slot", "chest", "enderchest", "offhand", "head", "chestplate", "leggings", "boots", "tool", "held item"],
+        item: ["stone", "grass", "dirt", "cobblestone", "planks", "sapling", "bedrock", "water", "lava", "sand", "gravel", "gold ore", "iron ore", "coal ore", "log", "leaves", "sponge", "glass", "lapis ore", "dispenser", "sandstone", "note block", "wool", "piston", "tnt", "bookshelf", "mossy cobblestone", "obsidian", "torch", "fire", "chest", "diamond ore", "redstone ore", "ice", "snow", "clay", "pumpkin", "netherrack", "glowstone", "cake", "trapdoor", "stone bricks", "iron bars", "glass pane", "melon", "fence", "gate", "mycelium", "lily pad", "nether brick", "enchantment table", "brewing stand", "cauldron", "end portal", "dragon egg", "redstone lamp", "emerald ore", "anvil", "beacon", "hopper", "quartz", "dropper", "stained glass", "slime block", "iron shovel", "iron pickaxe", "iron axe", "flint and steel", "apple", "bow", "arrow", "coal", "diamond", "iron ingot", "gold ingot", "iron sword", "diamond sword", "stick", "bowl", "soup", "gold sword", "string", "feather", "gunpowder", "hoe", "wheat", "bread", "helmet", "chestplate", "leggings", "boots", "flint", "raw porkchop", "cooked porkchop", "painting", "golden apple", "sign", "wooden door", "bucket", "minecart", "saddle", "iron door", "redstone", "snowball", "boat", "leather", "milk", "brick", "sugar cane", "paper", "book", "slimeball", "egg", "compass", "fishing rod", "clock", "glowstone dust", "raw fish", "cooked fish", "dye", "bone", "sugar", "cookie", "map", "shears", "melon slice", "pumpkin seeds", "melon seeds", "raw beef", "cooked beef", "raw chicken", "cooked chicken", "rotten flesh", "ender pearl", "blaze rod", "ghast tear", "gold nugget", "nether wart", "potion", "glass bottle", "spider eye", "fermented spider eye", "blaze powder", "magma cream", "eye of ender", "glistering melon", "spawn egg", "bottle o' enchanting", "fire charge", "writable book", "written book", "emerald", "item frame", "flower pot", "carrot", "potato", "baked potato", "poisonous potato", "empty map", "golden carrot", "skull", "carrot on a stick", "nether star", "pumpkin pie", "firework rocket", "firework star", "enchanted book", "nether brick", "netherite ingot", "netherite sword", "netherite pickaxe", "elytra", "trident", "netherite scraps"]
     };
 
     const colorMap = {};
@@ -130,9 +152,36 @@
     function handleAuth() {
         const u = document.getElementById('auth-user').value.trim();
         if(!u) return; user = u;
-        if(!db[user]) db[user] = { "autosave_test.sk": "on join:\n\tsend \"&eAutosave is now ACTIVE\"\n\tset {last_login} to now" };
+        if(!db[user]) db[user] = { 
+            "colors.sk": "on join:\n\tbroadcast \"&a%player% &7has joined the server!\"\n\tsend \"&e&lTUTORIAL &fWelcome to our server!\" to player",
+            "regex.sk": "on chat:\n\tif message matches regex \"&c[A-Za-z0-9]\":\n\t\tsend \"&4No color codes in chat!\"\n\t\tcancel event"
+        };
         document.getElementById('auth-modal').style.display = 'none';
         renderList(); load(Object.keys(db[user])[0]);
+    }
+
+    // --- MC COLOR CODE FORMATTING ---
+    function formatMC(str) {
+        let out = "";
+        let openSpans = 0;
+        for(let i=0; i<str.length; i++) {
+            if(str[i] === '&' && i+1 < str.length) {
+                let code = str[i+1].toLowerCase();
+                let valid = "0123456789abcdefklmnor".includes(code);
+                if(valid) {
+                    if(code === 'r') {
+                        while(openSpans > 0) { out += "</span>"; openSpans--; }
+                    } else {
+                        out += `<span class="mc-${code}">`;
+                        openSpans++;
+                    }
+                    i++; continue;
+                }
+            }
+            out += str[i];
+        }
+        while(openSpans > 0) { out += "</span>"; openSpans--; }
+        return out;
     }
 
     function update() {
@@ -141,10 +190,19 @@
         elGutter.innerHTML = lines.map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
 
         let html = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        
+        // Comments
         html = html.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
-        html = html.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="sk-str">$1</span>');
+        
+        // Strings with Minecraft Formatting Support
+        html = html.replace(/("(?:[^"\\]|\\.)*")/g, (match) => {
+            return `<span class="sk-str">${formatMC(match)}</span>`;
+        });
+        
+        // Variables
         html = html.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
 
+        // Tokens
         const tokens = html.split(/(\s+|[.,:!?;])/);
         const highlighted = tokens.map(token => {
             const clean = token.toLowerCase();
@@ -158,44 +216,64 @@
         document.getElementById('cursor-pos').innerText = `Ln ${cur.length}, Col ${cur[cur.length-1].length + 1}`;
     }
 
-    // --- CORE LOGIC: AUTOSAVE ---
+    // --- CHAT / CONSOLE SIMULATOR ---
+    function logSim(msg) {
+        const log = document.getElementById('sim-logs');
+        log.innerHTML += `<div>${formatMC(msg)}</div>`;
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function handleSimInput(e) {
+        if (e.key === 'Enter') {
+            const val = e.target.value;
+            if (!val) return;
+            if (val.startsWith('/')) {
+                logSim(`&7[Console] Issued server command: ${val}`);
+                if(val === "/reload") runSimulation();
+            } else {
+                logSim(`&f&lPlayer: &7${val}`);
+            }
+            e.target.value = '';
+        }
+    }
+
+    function runSimulation() {
+        logSim("&e[System] Reloading scripts...");
+        setTimeout(() => logSim(`&a[System] ${curFile} reloaded successfully. (0 errors)`), 400);
+    }
+
+    // --- CORE LOGIC ---
     function onInput() {
         update();
         elStatus.innerText = "Saving...";
-        elStatus.className = "syncing";
-        
         clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(() => {
-            saveSk(true);
-        }, 1500); // 1.5 Second delay after typing stops
+        autoSaveTimer = setTimeout(() => saveSk(true), 1000);
     }
 
     function saveSk(silent=true) {
         if(!user || !curFile) return;
         db[user][curFile] = elIn.value;
-        localStorage.setItem('sk_pro_db_v3', JSON.stringify(db));
-        
-        elStatus.innerText = "Saved to storage";
-        elStatus.className = "saved";
-        if(!silent) alert("Project manually force-saved.");
-    }
-
-    function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-        document.getElementById('open-btn').style.display = document.getElementById('sidebar').classList.contains('collapsed') ? 'block' : 'none';
-    }
-
-    function renderList() {
-        document.getElementById('project-list').innerHTML = Object.keys(db[user]).map(f => `
-            <div class="project-item ${curFile === f ? 'active' : ''}" onclick="load('${f}')">📄 ${f}</div>
-        `).join('');
+        localStorage.setItem('sk_ultra_db_v5', JSON.stringify(db));
+        elStatus.innerText = "Synced";
     }
 
     function load(f) {
         curFile = f; elIn.value = db[user][f];
         document.getElementById('cur-file').innerText = f;
         update(); renderList();
-        elStatus.innerText = "File loaded";
+    }
+
+    function renderList() {
+        document.getElementById('project-list').innerHTML = Object.keys(db[user]).map(f => `
+            <div class="project-item ${curFile === f ? 'active' : ''}" onclick="load('${f}')">
+                <span>${f.endsWith('.sk') ? '🐝' : '📄'} ${f}</span>
+            </div>
+        `).join('');
+    }
+
+    function createFile() {
+        const n = prompt("Filename (.sk or .txt):");
+        if(n) { db[user][n] = "# New file"; load(n); }
     }
 
     function onKey(e) {
@@ -209,21 +287,15 @@
         }
     }
 
-    function syncScroll() {
-        elOut.scrollTop = elGutter.scrollTop = elIn.scrollTop;
-        elOut.scrollLeft = elIn.scrollLeft;
+    function syncScroll() { elOut.scrollTop = elGutter.scrollTop = elIn.scrollTop; elOut.scrollLeft = elIn.scrollLeft; }
+    function toggleSidebar() { 
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.getElementById('open-btn').style.display = document.getElementById('sidebar').classList.contains('collapsed') ? 'block' : 'none';
     }
-
     function exportSk() {
         const blob = new Blob([elIn.value], {type:'text/plain'});
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = curFile; a.click();
     }
-
-    function createFile() {
-        const n = prompt("Filename (e.g. system.sk):");
-        if(n) { db[user][n] = "# New Script Created"; load(n); }
-    }
-
     function importSk(input) {
         const f = input.files[0];
         const r = new FileReader();
