@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skript IDE - Fixed Dimensions</title>
+    <title>Skript IDE - Ultimate Manager</title>
     <style>
         :root {
             --bg: #282a36; --sidebar: #1e1f29; --fg: #f8f8f2;
@@ -15,57 +15,101 @@
         
         body, html { margin: 0; padding: 0; height: 100%; background: var(--bg); font-family: 'Inter', sans-serif; overflow: hidden; color: var(--fg); }
         
-        /* Layout Fix: Absolute container to prevent "cursed" overflow */
+        /* --- LAYOUT GRID --- */
         .container { display: flex; height: 100vh; width: 100vw; position: absolute; top:0; left:0; }
         
-        .sidebar { width: 240px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid #111; flex-shrink: 0; }
+        /* Sidebar */
+        .sidebar { 
+            width: 260px; 
+            background: var(--sidebar); 
+            display: flex; 
+            flex-direction: column; 
+            border-right: 1px solid #111; 
+            flex-shrink: 0; 
+            z-index: 20;
+        }
+        .sidebar-header { 
+            padding: 15px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            color: var(--purple); 
+            letter-spacing: 1px;
+            border-bottom: 1px solid #111;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .file-controls { padding: 10px; display: flex; gap: 5px; border-bottom: 1px solid #111; }
+        .file-list { flex: 1; overflow-y: auto; padding: 5px 0; }
         
+        .file-item { 
+            padding: 8px 15px; 
+            font-size: 13px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            border-left: 3px solid transparent;
+            color: #aaa;
+        }
+        .file-item:hover { background: var(--selection); color: #fff; }
+        .file-item.active { background: #2f3142; color: var(--green); border-left-color: var(--green); font-weight: bold; }
+        .file-icon { margin-right: 8px; font-size: 14px; }
+        .del-btn { opacity: 0; color: var(--red); font-weight: bold; padding: 0 5px; cursor: pointer; }
+        .file-item:hover .del-btn { opacity: 1; }
+
+        /* Main Content */
         .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; }
         
-        .toolbar { height: 45px; background: var(--sidebar); display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #111; gap: 10px; flex-shrink: 0; }
-        
-        /* Editor Section: Takes 65% of the height, never less than 300px */
+        .toolbar { 
+            height: 42px; 
+            background: var(--sidebar); 
+            display: flex; 
+            align-items: center; 
+            padding: 0 15px; 
+            border-bottom: 1px solid #000; 
+            gap: 10px; 
+            flex-shrink: 0; 
+        }
+
+        /* Editor Area */
         .editor-container { 
-            flex: 6.5; 
+            flex: 65; /* 65% Height */
             position: relative; 
             display: flex; 
             background: var(--bg); 
             overflow: hidden; 
-            min-height: 300px;
+            min-height: 200px;
         }
 
-        /* Simulator Section: Takes 35% of the height, never less than 150px */
+        /* Simulator Area */
         .sim-container { 
-            flex: 3.5; 
-            background: #0c0c0c; 
+            flex: 35; /* 35% Height */
+            background: #101010; 
             display: flex; 
             flex-direction: column; 
             font-family: 'Consolas', monospace;
-            border-top: 4px solid #111;
+            border-top: 2px solid var(--purple);
             min-height: 150px;
         }
 
+        /* Editor Internals */
         .code-font { font-family: 'Fira Code', 'Consolas', monospace; font-size: 14px; line-height: var(--line-height); }
-        
         #gutter { width: 50px; background: var(--sidebar); color: var(--comment); text-align: right; padding-top: 10px; border-right: 1px solid rgba(255,255,255,0.05); user-select: none; }
         .line-num { padding-right: 12px; height: var(--line-height); }
         
         .input-area { flex: 1; position: relative; overflow: hidden; }
         #editing, #highlighting { position: absolute; top: 0; left: 0; width: 100%; height: 100%; margin: 0; padding: 10px; border: 0; tab-size: 4; white-space: pre; word-wrap: normal; box-sizing: border-box; overflow: auto; }
-        
         #editing { z-index: 3; background: transparent; color: transparent; caret-color: #fff; outline: none; resize: none; }
         #highlighting { z-index: 2; pointer-events: none; }
 
-        /* MC Color Overrides */
-        .mc-tag { opacity: 0.6; font-weight: normal; } /* Makes the &a codes look like tags */
-        .mc-0 { color: #000000 !important; } .mc-1 { color: #0000AA !important; } .mc-2 { color: #00AA00 !important; }
-        .mc-3 { color: #00AAAA !important; } .mc-4 { color: #AA0000 !important; } .mc-5 { color: #AA00AA !important; }
-        .mc-6 { color: #FFAA00 !important; } .mc-7 { color: #AAAAAA !important; } .mc-8 { color: #555555 !important; }
-        .mc-9 { color: #5555FF !important; } .mc-a { color: #55FF55 !important; } .mc-b { color: #55FFFF !important; }
-        .mc-c { color: #FF5555 !important; } .mc-d { color: #FF55FF !important; } .mc-e { color: #FFFF55 !important; }
-        .mc-f { color: #FFFFFF !important; } .mc-l { font-weight: bold; }
+        /* Colors */
+        .mc-tag { opacity: 0.5; font-size: 0.9em; }
+        .mc-0 { color: #000 !important; } .mc-1 { color: #00a !important; } .mc-2 { color: #0a0 !important; } 
+        .mc-3 { color: #0aa !important; } .mc-4 { color: #a00 !important; } .mc-5 { color: #a0a !important; } 
+        .mc-6 { color: #fa0 !important; } .mc-7 { color: #aaa !important; } .mc-8 { color: #555 !important; } 
+        .mc-9 { color: #55f !important; } .mc-a { color: #5f5 !important; } .mc-b { color: #5ff !important; } 
+        .mc-c { color: #f55 !important; } .mc-d { color: #f5f !important; } .mc-e { color: #ff5 !important; } 
+        .mc-f { color: #fff !important; }
 
-        /* Keyword Highlights */
         .sk-ev { color: var(--pink); font-weight: bold; }
         .sk-eff { color: var(--cyan); }
         .sk-cond { color: var(--yellow); }
@@ -74,13 +118,13 @@
         .sk-comment { color: var(--comment); font-style: italic; }
         .sk-str { color: #a6e22e; }
 
-        #sim-logs { flex: 1; padding: 12px; overflow-y: auto; font-size: 13px; color: #ddd; line-height: 1.4; }
-        .sim-input-wrap { display: flex; background: #000; padding: 10px; align-items: center; border-top: 1px solid #222; }
-        #sim-input { flex: 1; background: transparent; border: none; color: #55FF55; outline: none; padding-left: 10px; font-family: monospace; font-size: 14px; }
+        /* Simulator Internals */
+        #sim-logs { flex: 1; padding: 10px; overflow-y: auto; font-size: 13px; color: #ddd; }
+        .sim-input-wrap { display: flex; background: #000; padding: 8px; border-top: 1px solid #222; }
+        #sim-input { flex: 1; background: transparent; border: none; color: var(--green); outline: none; padding-left: 10px; font-family: monospace; }
         
-        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        .tool-btn { background: var(--selection); border: 1px solid rgba(255,255,255,0.1); color: var(--fg); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.2s; }
         .tool-btn:hover { background: var(--purple); color: #000; }
-        
         .status-bar { height: 25px; background: var(--sidebar); border-top: 1px solid #111; display: flex; align-items: center; padding: 0 10px; font-size: 11px; color: var(--comment); flex-shrink: 0; }
     </style>
 </head>
@@ -88,18 +132,25 @@
 
 <div class="container">
     <div class="sidebar">
-        <div class="sidebar-header" style="color:var(--purple); font-size: 11px; letter-spacing: 1px;">PROJECT EXPLORER</div>
-        <div class="project-list" id="project-list">
-            <div class="project-item active" style="padding: 10px; font-size: 13px;">🐝 script.sk</div>
+        <div class="sidebar-header">
+            <span>FILES</span>
+            <span id="file-count" style="color:var(--comment); font-size:10px;">0 items</span>
         </div>
+        <div class="file-controls">
+            <button class="tool-btn" style="flex:1" onclick="createNewFile()">+ NEW</button>
+            <button class="tool-btn" style="flex:1" onclick="document.getElementById('import-input').click()">IMPORT</button>
+        </div>
+        <div class="file-list" id="file-list"></div>
     </div>
 
     <div class="main">
         <div class="toolbar">
-            <span style="font-size: 13px; font-weight: bold; color: var(--comment);">Editing: <span style="color:var(--purple)">script.sk</span></span>
+            <span id="current-filename" style="font-weight:bold; color:var(--purple); font-size:13px;">No File Selected</span>
+            <span id="save-indicator" style="font-size:10px; color:var(--comment); margin-left:10px;">Saved</span>
             <div style="flex:1"></div>
-            <button class="tool-btn" onclick="runSimulation()">RELOAD SCRIPT</button>
-            <button class="tool-btn" style="background:var(--purple); color:#000; font-weight:bold;">SAVE</button>
+            <button class="tool-btn" onclick="runSimulation()" style="color:var(--green); border-color:rgba(80,250,123,0.3)">▶ RELOAD</button>
+            <button class="tool-btn" onclick="downloadFile()">DOWNLOAD</button>
+            <button class="tool-btn" onclick="saveCurrent(true)" style="background:var(--purple); color:#000;">SAVE</button>
         </div>
 
         <div class="editor-container">
@@ -111,32 +162,160 @@
         </div>
 
         <div class="sim-container">
+            <div class="sidebar-header" style="background:#151515; border-bottom:1px solid #222;">
+                <span>SERVER CONSOLE / CHAT</span>
+                <span style="cursor:pointer; font-size:10px;" onclick="document.getElementById('sim-logs').innerHTML=''">CLEAR</span>
+            </div>
             <div id="sim-logs">
-                <div style="color:var(--comment)">[System] Dimensions stabilized. Simulator ready.</div>
+                <div style="color:var(--comment)">[System] Server simulator initialized.</div>
             </div>
             <div class="sim-input-wrap">
-                <span style="color:#55FF55; font-weight:bold;">&gt;</span>
-                <input type="text" id="sim-input" placeholder="Type a message or command..." onkeydown="handleSimInput(event)">
+                <span style="color:var(--green); font-weight:bold;">&gt;</span>
+                <input type="text" id="sim-input" placeholder="Type command or chat..." onkeydown="handleSimInput(event)">
             </div>
         </div>
 
         <div class="status-bar">
-            <span>Skript Ultimate IDE v2.0</span>
+            <span>Skript Ultimate v3.0</span>
             <div style="flex:1"></div>
             <span id="cursor-pos">Ln 1, Col 1</span>
         </div>
     </div>
 </div>
 
-<script>
-    const elIn = document.getElementById('editing');
-    const elOut = document.getElementById('highlighting');
-    const elGutter = document.getElementById('gutter');
+<input type="file" id="import-input" style="display:none" onchange="handleImport(this)">
 
-    const colorMap = {
-        "on join:": "ev", "on chat:": "ev", "send": "eff", "broadcast": "eff", 
-        "if": "cond", "else": "cond", "player": "exp", "message": "exp", "cancel": "eff"
+<script>
+    // --- STATE MANAGEMENT ---
+    let files = JSON.parse(localStorage.getItem('sk_files_v3')) || {
+        "script.sk": "on join:\n\tbroadcast \"&aWelcome &f%player%!\"\n\tsend \"&eCheck out the new file manager!\" to player",
+        "config.yml": "server_name: \"My Skript Server\"\nversion: 1.0",
+        "notes.txt": "TODO:\n- Add more commands\n- Fix bugs"
     };
+    let currentFile = Object.keys(files)[0];
+    let autoSaveTimer;
+
+    // --- DOM ELEMENTS ---
+    const els = {
+        in: document.getElementById('editing'),
+        out: document.getElementById('highlighting'),
+        gutter: document.getElementById('gutter'),
+        list: document.getElementById('file-list'),
+        curFile: document.getElementById('current-filename'),
+        save: document.getElementById('save-indicator'),
+        logs: document.getElementById('sim-logs')
+    };
+
+    // --- KEYWORDS & HIGHLIGHTING ---
+    const colorMap = {
+        "on join:": "ev", "on quit:": "ev", "on chat:": "ev", "command": "ev", "trigger:": "ev",
+        "send": "eff", "broadcast": "eff", "set": "eff", "add": "eff", "remove": "eff", "cancel": "eff", "stop": "eff",
+        "if": "cond", "else": "cond", "while": "cond", "loop": "cond", "is": "cond", "has": "cond",
+        "player": "exp", "message": "exp", "arg": "exp", "arg-1": "exp", "uuid": "exp", "location": "exp",
+        "function": "ev", "return": "eff"
+    };
+
+    function init() {
+        renderFileList();
+        loadFile(currentFile);
+    }
+
+    // --- FILE SYSTEM LOGIC ---
+    function renderFileList() {
+        els.list.innerHTML = '';
+        const names = Object.keys(files).sort();
+        document.getElementById('file-count').innerText = `${names.length} items`;
+
+        names.forEach(name => {
+            const div = document.createElement('div');
+            div.className = `file-item ${name === currentFile ? 'active' : ''}`;
+            
+            // Icon logic
+            let icon = '📄';
+            if(name.endsWith('.sk')) icon = '🐝'; // SkBee/Skript
+            else if(name.endsWith('.yml')) icon = '⚙️'; // Config
+            
+            div.innerHTML = `
+                <div style="display:flex; align-items:center;">
+                    <span class="file-icon">${icon}</span>
+                    <span>${name}</span>
+                </div>
+                <span class="del-btn" onclick="deleteFile('${name}', event)">×</span>
+            `;
+            div.onclick = (e) => { if(e.target.className !== 'del-btn') loadFile(name); };
+            els.list.appendChild(div);
+        });
+    }
+
+    function loadFile(name) {
+        if(!files[name]) return;
+        currentFile = name;
+        els.in.value = files[name];
+        els.curFile.innerText = name;
+        updateHighlight();
+        renderFileList(); // Update active class
+    }
+
+    function createNewFile() {
+        const name = prompt("Enter filename (e.g. test.sk):", "untitled.sk");
+        if(name) {
+            if(files[name]) return alert("File already exists!");
+            files[name] = "# New file created at " + new Date().toLocaleTimeString();
+            saveToStorage();
+            loadFile(name);
+        }
+    }
+
+    function deleteFile(name, e) {
+        e.stopPropagation(); // Prevent clicking the file behind the button
+        if(Object.keys(files).length <= 1) return alert("Cannot delete the last file!");
+        if(confirm(`Delete ${name}?`)) {
+            delete files[name];
+            if(currentFile === name) loadFile(Object.keys(files)[0]);
+            else renderFileList();
+            saveToStorage();
+        }
+    }
+
+    function saveCurrent(manual = false) {
+        files[currentFile] = els.in.value;
+        saveToStorage();
+        els.save.innerText = manual ? "Saved (Manual)" : "Saved";
+        els.save.style.color = "var(--green)";
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('sk_files_v3', JSON.stringify(files));
+    }
+
+    function handleImport(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            files[file.name] = e.target.result;
+            saveToStorage();
+            loadFile(file.name);
+        };
+        reader.readAsText(file);
+    }
+
+    function downloadFile() {
+        const blob = new Blob([files[currentFile]], {type: 'text/plain'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = currentFile;
+        a.click();
+    }
+
+    // --- EDITOR LOGIC ---
+    function onInput() {
+        updateHighlight();
+        els.save.innerText = "Unsaved...";
+        els.save.style.color = "var(--orange)";
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => saveCurrent(), 1000);
+    }
 
     function formatMC(str) {
         let out = "";
@@ -159,71 +338,98 @@
         return out;
     }
 
-    function update() {
-        const code = elIn.value;
+    function updateHighlight() {
+        const code = els.in.value;
         const lines = code.split('\n');
-        elGutter.innerHTML = lines.map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
+        els.gutter.innerHTML = lines.map((_, i) => `<div class="line-num">${i+1}</div>`).join('');
 
         let html = code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         
-        // Comments
+        // 1. Comments
         html = html.replace(/(#.*)/g, '<span class="sk-comment">$1</span>');
         
-        // Strings (Color Codes Preserved)
-        // Note: We un-escape &amp; inside strings briefly to process MC codes
+        // 2. Strings (With MC Colors)
         html = html.replace(/("(?:[^"\\]|\\.)*")/g, (m) => {
+            // Temporarily unescape &amp; inside strings to parse color codes
             let clean = m.replace(/&amp;/g, '&');
             return `<span class="sk-str">${formatMC(clean)}</span>`;
         });
 
-        // Keywords
+        // 3. Variables
+        html = html.replace(/(\{.*?\})/g, '<span class="sk-var">$1</span>');
+
+        // 4. Keywords
         const tokens = html.split(/(\s+|[.,:!?;])/);
         html = tokens.map(token => {
-            if (token.startsWith('<span')) return token;
+            if (token.startsWith('<span')) return token; // Skip already colored
             const clean = token.toLowerCase();
             if (colorMap[clean]) return `<span class="sk-${colorMap[clean]}">${token}</span>`;
+            if (token.endsWith(':') && colorMap[clean.slice(0,-1)]) return `<span class="sk-${colorMap[clean.slice(0,-1)]}">${token}</span>`;
             return token;
         }).join('');
 
-        elOut.innerHTML = html + (code.endsWith('\n') ? ' ' : '');
+        els.out.innerHTML = html + (code.endsWith('\n') ? ' ' : '');
+        syncScroll();
         
-        const cur = code.substr(0, elIn.selectionStart).split("\n");
+        const cur = code.substr(0, els.in.selectionStart).split("\n");
         document.getElementById('cursor-pos').innerText = `Ln ${cur.length}, Col ${cur[cur.length-1].length + 1}`;
     }
 
-    function onInput() { update(); }
-    function syncScroll() { elOut.scrollTop = elGutter.scrollTop = elIn.scrollTop; elOut.scrollLeft = elIn.scrollLeft; }
-    
+    function syncScroll() {
+        els.out.scrollTop = els.gutter.scrollTop = els.in.scrollTop;
+        els.out.scrollLeft = els.in.scrollLeft;
+    }
+
     function onKey(e) {
-        if (e.key === 'Tab') { 
-            e.preventDefault(); 
-            document.execCommand('insertText', false, "\t"); 
+        if(e.key === 'Tab') {
+            e.preventDefault();
+            document.execCommand('insertText', false, "\t");
+        }
+        if(e.key === 'Enter') {
+            e.preventDefault();
+            const start = els.in.selectionStart;
+            const text = els.in.value;
+            const currentLine = text.substring(0, start).split('\n').pop();
+            const indent = currentLine.match(/^\s*/)[0];
+            const extra = currentLine.trim().endsWith(':') ? '\t' : '';
+            document.execCommand('insertText', false, '\n' + indent + extra);
         }
     }
 
+    // --- SIMULATOR LOGIC ---
     function handleSimInput(e) {
-        if (e.key === 'Enter') {
-            const log = document.getElementById('sim-logs');
+        if(e.key === 'Enter') {
             const val = e.target.value;
             if(!val) return;
-            log.innerHTML += `<div><span style="color:#55FF55">Player:</span> ${formatMC(val)}</div>`;
+            logToSim(`&fPlayer: &7${val}`);
+            if(val.startsWith('/')) {
+                // Mock command logic
+                if(val === '/reload') runSimulation();
+                else logToSim(`&cUnknown command: ${val}`);
+            }
             e.target.value = '';
-            log.scrollTop = log.scrollHeight;
         }
     }
 
     function runSimulation() {
-        const log = document.getElementById('sim-logs');
-        log.innerHTML += `<div style="color:var(--yellow)">[System] Reloading...</div>`;
+        logToSim("&e[System] Reloading scripts...");
         setTimeout(() => {
-            log.innerHTML += `<div style="color:var(--green)">[System] Reload Complete!</div>`;
-            log.scrollTop = log.scrollHeight;
-        }, 400);
+            const errCount = Math.random() > 0.9 ? 1 : 0; // Random mock error
+            if(errCount === 0) logToSim(`&a[System] Successfully reloaded ${currentFile}.`);
+            else logToSim(`&c[System] Error parsing ${currentFile} at line ${Math.floor(Math.random()*10)}!`);
+        }, 600);
     }
 
-    // Default Code
-    elIn.value = 'on join:\n\tsend "&a&lWelcome &fback to the server!"\n\tbroadcast "&6%player% &7has arrived."';
-    update();
+    function logToSim(msg) {
+        // We reuse formatMC to allow color codes in console
+        const div = document.createElement('div');
+        div.innerHTML = formatMC(msg);
+        els.logs.appendChild(div);
+        els.logs.scrollTop = els.logs.scrollHeight;
+    }
+
+    // Boot
+    init();
 </script>
 </body>
 </html>
